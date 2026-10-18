@@ -27,7 +27,16 @@ export default function Login() {
     });
     setBusy(false);
     if (authError) {
-      setError("That student ID and password don't match. Check both, or ask the office to reset your password.");
+      const code = (authError as { code?: string }).code ?? "";
+      const msg =
+        code === "email_provider_disabled" || /logins are disabled/i.test(authError.message)
+          ? "Student sign-in is switched off. Ask the office to turn on email sign-in in Supabase."
+          : code === "email_not_confirmed"
+          ? "This account hasn't been confirmed yet. Ask the office to confirm it."
+          : code === "invalid_credentials"
+          ? "That student ID and password don't match. Check both, or ask the office to reset your password."
+          : `Sign-in failed: ${authError.message}`;
+      setError(msg);
       return;
     }
     router.replace("/portal");

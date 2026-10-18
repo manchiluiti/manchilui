@@ -39,10 +39,10 @@ export default function EnquiryForm() {
   }
 
   return (
-    <form className="panel" onSubmit={onSubmit} noValidate>
+    <form className="panel" style={{ alignSelf: "start" }} onSubmit={onSubmit} noValidate>
       <div>
-        <div className="mono" style={{ color: "var(--muted)" }}>Application enquiry</div>
-        <h2 style={{ fontSize: "1.4rem", marginTop: 4 }}>Ask about the next intake</h2>
+        <p className="eyebrow" style={{ fontSize: ".75rem" }}>Application enquiry</p>
+        <h2 style={{ marginTop: 8 }}>Ask About the Next Intake</h2>
       </div>
       <div className="field"><label htmlFor="e-name">Full name</label><input id="e-name" name="full_name" autoComplete="name" /></div>
       <div className="field"><label htmlFor="e-phone">Phone number</label><input id="e-phone" name="phone" inputMode="tel" placeholder="+260" /></div>
@@ -54,7 +54,7 @@ export default function EnquiryForm() {
       </div>
       <div className="field"><label htmlFor="e-msg">Question (optional)</label><textarea id="e-msg" name="message" /></div>
       {error && <div className="err" role="alert">{error}</div>}
-      <button className="btn btn-navy" type="submit" disabled={status === "sending"}>
+      <button className="btn btn-orange" type="submit" disabled={status === "sending"}>
         {status === "sending" ? "Sending…" : "Send enquiry"}
       </button>
       {status === "sent" && (

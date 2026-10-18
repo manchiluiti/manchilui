@@ -1,9 +1,24 @@
 import Link from "next/link";
 import Announcements, { type Announcement } from "@/components/Announcements";
+import HeroVisual from "@/components/HeroVisual";
+import { IconBook, IconBriefcase, IconClipboard, IconFile, IconTruck, IconUser, IconUsers } from "@/components/Icons";
 import { SecHead } from "@/components/PageHeader";
 import { createClient } from "@/lib/supabase/server";
 
 export const revalidate = 300;
+
+const START = [
+  { href: "/programme", title: "The Programme", text: "What you study, how classes run and where graduates go on to work.", more: "Learn More", Icon: IconBook },
+  { href: "/admissions", title: "Admissions", text: "Entry requirements, documents to bring and the steps to apply.", more: "Apply Now", Icon: IconClipboard },
+  { href: "/portal", title: "Student Portal", text: "Current students: check registration, fees balance and module results.", more: "Sign In", Icon: IconUser },
+];
+
+const WHY = [
+  { title: "Built around real documents", text: "Bills of lading, commercial invoices and customs declarations, practised in class.", Icon: IconFile },
+  { title: "Small classes", text: "Every student gets direct attention from lecturers who know the trade.", Icon: IconUsers },
+  { title: "On the trade corridor", text: "Chipata sits close to the Mwami border, where clearing agents are always needed.", Icon: IconTruck },
+  { title: "Career-ready in six months", text: "Finish ready to work for an agency, a transporter, or start your own.", Icon: IconBriefcase },
+];
 
 export default async function Home() {
   const supabase = await createClient();
@@ -17,72 +32,76 @@ export default async function Home() {
   return (
     <>
       <section className="hero">
-        <div className="wrap">
-          <div>
-            <div className="kicker">Diploma intake · Eastern Province</div>
-            <h1>Learn to move goods across <em>borders</em>, by the book.</h1>
+        <div className="wrap hero-grid">
+          <div className="anim-l">
+            <p className="eyebrow">Practical • Focused • Career-ready</p>
+            <h1>Your Career in Trade<br /><span>Starts Here.</span></h1>
             <p className="lede">
-              A six-month Diploma in Clearing and Forwarding, taught in Chipata, close to the Mwami border crossing.
-              Practical training in customs procedure, shipping documents and cargo handling.
+              A six-month Diploma in Clearing and Forwarding in Chipata. Learn customs procedure,
+              shipping documents and cargo handling, the skills every border post and freight agency needs.
             </p>
             <div className="ctas">
-              <Link className="btn btn-gold" href="/admissions">How to apply</Link>
-              <Link className="btn btn-line" href="/programme">About the programme</Link>
+              <Link className="btn btn-navy" href="/admissions">Apply Now</Link>
+              <Link className="btn btn-outline" href="/programme">Learn More</Link>
             </div>
           </div>
-          <div className="manifest" role="img" aria-label="Programme summary styled as a shipping document">
-            <div className="mf-top"><b>PROGRAMME MANIFEST</b><span className="mono" style={{ fontSize: ".66rem" }}>Ref MTI/DCF</span></div>
-            <div className="mf-row"><span>Award</span><span>Diploma in Clearing &amp; Forwarding</span></div>
-            <div className="mf-row"><span>Duration</span><span>6 months</span></div>
-            <div className="mf-row"><span>Origin</span><span>Eastrise, Chipata</span></div>
-            <div className="mf-row"><span>Destination</span><span>Border posts, ports, freight agencies</span></div>
-            <div className="mf-row"><span>Fees</span><span>Issued with acceptance letter</span></div>
-            <div className="mf-foot"><span className="mono" style={{ fontSize: ".66rem" }}>Consignee: you</span><span className="stamp">ENROLLING</span></div>
-          </div>
+          <HeroVisual />
         </div>
       </section>
 
-      <section className="facts">
+      <section className="stats">
         <div className="wrap">
-          <div className="fact"><div className="k">Programme</div><div className="v">Diploma</div></div>
-          <div className="fact"><div className="k">Length</div><div className="v">6 months</div></div>
-          <div className="fact"><div className="k">Modules</div><div className="v">7 core</div></div>
-          <div className="fact"><div className="k">Location</div><div className="v">Chipata</div></div>
+          <div className="stat"><div className="v">Diploma</div><div className="k">Award</div></div>
+          <div className="stat"><div className="v">6 months</div><div className="k">Duration</div></div>
+          <div className="stat"><div className="v">7</div><div className="k">Core modules</div></div>
+          <div className="stat"><div className="v">Chipata</div><div className="k">Campus</div></div>
+        </div>
+      </section>
+
+      <section className="sec sec-soft">
+        <div className="wrap">
+          <SecHead eyebrow="Get started" title="Everything In One Place" sub="Find out about the course, apply, or sign in to your student account." />
+          <div className="grid3">
+            {START.map(({ href, title, text, more, Icon }) => (
+              <Link key={href} href={href} className="fcard">
+                <div className="ficon"><Icon size={30} /></div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+                <span className="more">{more} →</span>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
       <section className="sec">
         <div className="wrap">
-          <SecHead>Start here</SecHead>
-          <div className="grid3">
-            <Link className="qcard" href="/programme"><h3>The Programme</h3><p>What you study, how classes run and where graduates work.</p><span className="go">Read more →</span></Link>
-            <Link className="qcard" href="/admissions"><h3>Admissions</h3><p>Entry requirements, documents to bring and the application steps.</p><span className="go">Apply →</span></Link>
-            <Link className="qcard" href="/portal"><h3>Student Portal</h3><p>Current students: check registration, fees balance and module results.</p><span className="go">Sign in →</span></Link>
+          <SecHead eyebrow="Why Manchilui" title="Training That Gets You Working" />
+          <div className="grid2" style={{ gap: 24 }}>
+            {WHY.map(({ title, text, Icon }) => (
+              <div key={title} className="fcard static" style={{ flexDirection: "row", gap: 20, alignItems: "flex-start" }}>
+                <div className="ficon" style={{ marginBottom: 0 }}><Icon size={28} /></div>
+                <div><h3 style={{ fontSize: "1.2rem" }}>{title}</h3><p>{text}</p></div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="sec" style={{ paddingTop: 0 }}>
-        <div className="wrap grid2">
-          <div>
-            <SecHead>Announcements</SecHead>
-            <Announcements items={(data ?? []) as Announcement[]} empty="No announcements right now. Check back soon." />
-          </div>
-          <div>
-            <SecHead>Why Manchilui</SecHead>
-            <div className="prose">
-              <p>Clearing agents keep trade moving. Every truck at a border and every container at a port needs someone who knows the paperwork, the tariff and the procedure.</p>
-              <p>Manchilui trains that person. Classes are small, lecturers come from the trade, and the course is built around the documents and procedures you will handle on your first day of work.</p>
-              <Link className="btn btn-navy" href="/about" style={{ justifySelf: "start" }}>About the institute</Link>
-            </div>
-          </div>
+      <section className="sec sec-soft">
+        <div className="wrap" style={{ maxWidth: 860 }}>
+          <SecHead eyebrow="Notice board" title="Latest Announcements" />
+          <Announcements items={(data ?? []) as Announcement[]} empty="No announcements right now. Check back soon." />
         </div>
       </section>
 
       <section className="cta">
         <div className="wrap">
-          <h2>Ready to start a career in trade?</h2>
-          <Link className="btn btn-navy" href="/admissions">See how to apply</Link>
+          <div>
+            <h2>Ready to start your career in trade?</h2>
+            <p>Applications are open for the next intake.</p>
+          </div>
+          <Link className="btn btn-navy" href="/admissions">See How to Apply</Link>
         </div>
       </section>
     </>

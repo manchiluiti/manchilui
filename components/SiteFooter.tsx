@@ -1,38 +1,53 @@
 import Link from "next/link";
 import Logo from "./Logo";
+import { IconClock, IconMail, IconPhone, IconPin } from "./Icons";
 import { PAGES, SITE } from "@/lib/site";
 
 export default function SiteFooter() {
   return (
-    <footer className="foot">
-      <div className="wrap cols">
+    <footer className="footer">
+      <div className="wrap footer-grid">
         <div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <Logo size={44} />
-            <div style={{ fontWeight: 800, fontSize: "1.1rem" }}>{SITE.name}</div>
+          <div className="fbrand">
+            <Logo size={52} />
+            <div className="fname">Manchilui<span>.</span></div>
           </div>
-          <p>A clearing and forwarding school in Eastrise, Chipata, training Zambia&apos;s next generation of trade and customs professionals.</p>
+          <p className="ftag">A clearing and forwarding training institute in Eastrise, Chipata, preparing young Zambians for careers at border posts, ports and freight agencies.</p>
         </div>
+
         <div>
-          <div className="fh">Quick links</div>
-          <div className="flinks">
+          <h4>Quick Links</h4>
+          <ul>
             {PAGES.filter((p) => p.href !== "/").map((p) => (
-              <Link key={p.href} href={p.href}>{p.label}</Link>
+              <li key={p.href}><Link href={p.href}>{p.label}</Link></li>
             ))}
-            <Link href="/portal">Student Portal</Link>
-          </div>
+            <li><Link href="/portal" style={{ color: "#fff", fontWeight: 600 }}>Student Portal →</Link></li>
+          </ul>
         </div>
+
         <div>
-          <div className="fh">Contact</div>
-          <div className="flinks" style={{ gap: 4 }}>
-            <a href={`tel:${SITE.directorPhone.replace(/\s/g, "")}`}>Director: {SITE.directorPhone}</a>
-            <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
-            <span style={{ opacity: 0.8 }}>Eastrise, Chipata<br />Eastern Province, Zambia</span>
-          </div>
+          <h4><IconClock size={18} /> Office Hours</h4>
+          <ul className="hours">
+            <li><small>Monday – Friday</small><b>08:00 – 17:00</b></li>
+            <li><small>Saturday</small><b>08:00 – 13:00</b></li>
+            <li><small>Sunday &amp; Public Holidays</small><b>Closed</b></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4>Contact Info</h4>
+          <ul>
+            <li className="ci"><IconPin size={18} /><span>{SITE.address}</span></li>
+            <li className="ci"><IconMail size={18} /><a href={`mailto:${SITE.email}`}>{SITE.email}</a></li>
+            <li className="ci"><IconPhone size={18} /><a href={`tel:${SITE.directorPhone.replace(/\s/g, "")}`}>{SITE.directorPhone}</a></li>
+          </ul>
         </div>
       </div>
-      <div className="fbot">
-        <div className="wrap"><span>© {new Date().getFullYear()} {SITE.name}</span></div>
+      <div className="fbottom">
+        <div className="wrap">
+          <p>© {new Date().getFullYear()} {SITE.name}. All rights reserved.</p>
+          <p>Eastrise · Chipata · Eastern Province</p>
+        </div>
       </div>
     </footer>
   );

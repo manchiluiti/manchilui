@@ -1,15 +1,14 @@
-import Masthead from "@/components/Masthead";
-import NavBar from "@/components/NavBar";
+import FloatingButtons from "@/components/FloatingButtons";
+import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Masthead />
-      <div className="stripe" />
-      <NavBar />
+      <Header />
       <main>{children}</main>
       <SiteFooter />
+      <FloatingButtons />
     </>
   );
 }

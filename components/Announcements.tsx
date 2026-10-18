@@ -1,7 +1,7 @@
 export type Announcement = { id: string; title: string; body: string; posted_on: string };
 
 export default function Announcements({ items, empty }: { items: Announcement[]; empty: string }) {
-  if (!items.length) return <p style={{ color: "var(--muted)" }}>{empty}</p>;
+  if (!items.length) return <p className="empty">{empty}</p>;
   return (
     <div className="ann">
       {items.map((a) => {

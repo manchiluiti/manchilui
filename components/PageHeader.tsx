@@ -1,17 +1,21 @@
-import Link from "next/link";
-
-export default function PageHeader({ crumb, title, sub }: { crumb: string; title: string; sub?: string }) {
+export default function PageHeader({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: string }) {
   return (
-    <section className="phead">
+    <section className="banner">
       <div className="wrap">
-        <div className="crumb"><Link href="/">Home</Link> / {crumb}</div>
+        <p className="eyebrow">{eyebrow}</p>
         <h1>{title}</h1>
-        {sub && <p>{sub}</p>}
+        {sub && <p className="sub">{sub}</p>}
       </div>
     </section>
   );
 }
 
-export function SecHead({ children }: { children: React.ReactNode }) {
-  return <div className="sec-h"><h2>{children}</h2><span className="rule" /></div>;
+export function SecHead({ eyebrow, title, sub, left }: { eyebrow: string; title: string; sub?: string; left?: boolean }) {
+  return (
+    <div className={`sec-head ${left ? "left" : ""}`}>
+      <p className="eyebrow">{eyebrow}</p>
+      <h2>{title}</h2>
+      {sub && <p>{sub}</p>}
+    </div>
+  );
 }

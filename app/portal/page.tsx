@@ -36,9 +36,10 @@ export default async function Portal() {
     );
   }
 
-  const [{ data: mods }, { data: ann }] = await Promise.all([
+  const [{ data: mods }, { data: ann }, { data: pays }] = await Promise.all([
     supabase.from("student_modules").select("status,grade,modules(code,name,sort)").eq("student_id", student.id),
     supabase.from("announcements").select("id,title,body,posted_on").order("posted_on", { ascending: false }).limit(5),
+    supabase.from("payments").select("id,amount,method,paid_on").eq("student_id", student.id).order("paid_on", { ascending: false }).limit(10),
   ]);
 
   const modules = ((mods ?? []) as unknown as ModuleRow[]).sort((a, b) => a.modules.sort - b.modules.sort);
@@ -87,11 +88,24 @@ export default async function Portal() {
             </div>
           </div>
         </div>
-        <div className="rec" style={{ alignSelf: "start" }}>
+        <div style={{ display: "grid", gap: 24, alignContent: "start" }}>
+        <div className="rec">
+          <div className="rec-h"><h2>Payments</h2></div>
+          <div className="rec-b">
+            {(pays ?? []).length === 0 && <p className="muted-row">No payments recorded yet.</p>}
+            {(pays ?? []).map((p) => (
+              <div className="row" key={p.id}>
+                <div><b>{kwacha(p.amount)}</b><small>{p.paid_on} · {p.method}</small></div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rec">
           <div className="rec-h"><h2>Announcements</h2></div>
           <div style={{ padding: 16 }}>
             <Announcements items={(ann ?? []) as Announcement[]} empty="No announcements yet." />
           </div>
+        </div>
         </div>
       </div>
     </div>

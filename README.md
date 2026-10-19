@@ -31,4 +31,4 @@ One-time setup, in order:
 - **Students**: Admin > Students > + Add student creates the record and portal login. Students sign in at `/portal` with their ID (e.g. `MTI-2026-001`).
 - **Fees**: record payments on the student's page; the balance updates automatically.
 - **Lecturers**: Admin > Teaching > open a module to enter marks, upload notes, schedule classes and message the class.
-- **Grades**: letter grades come from the grading scale (default A+ 86, A 76, B+ 68, B 62, C+ 56, C 50 pass, D+ 40, D 0). Management can change it at Admin > Teaching > Grading scale.
+- **Grades**: A+ 90, A 80, B+ 70, B 60, C+ 50, C 40 (pass mark), F below 40. Management can change it at Admin > Teaching > Grading scale.

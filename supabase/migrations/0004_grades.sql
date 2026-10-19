@@ -9,18 +9,20 @@ create table if not exists public.grade_scale (
   is_pass boolean not null
 );
 
+-- Manchilui scale. Re-running this file resets the scale to these values.
+delete from public.grade_scale;
 insert into public.grade_scale (letter, min_mark, remark, is_pass) values
-  ('A+', 86, 'Distinction', true),
-  ('A',  76, 'Distinction', true),
-  ('B+', 68, 'Meritorious', true),
-  ('B',  62, 'Very satisfactory', true),
-  ('C+', 56, 'Definite pass', true),
-  ('C',  50, 'Bare pass', true),
-  ('D+', 40, 'Fail', false),
-  ('D',   0, 'Fail', false)
-on conflict (letter) do nothing;
+  ('A+', 90, 'Distinction', true),
+  ('A',  80, 'Excellent', true),
+  ('B+', 70, 'Very good', true),
+  ('B',  60, 'Good', true),
+  ('C+', 50, 'Satisfactory', true),
+  ('C',  40, 'Pass', true),
+  ('F',   0, 'Fail', false);
 
 alter table public.grade_scale enable row level security;
+drop policy if exists "anyone reads grade scale" on public.grade_scale;
+drop policy if exists "management manage grade scale" on public.grade_scale;
 create policy "anyone reads grade scale" on public.grade_scale for select using (true);
 create policy "management manage grade scale" on public.grade_scale for all
   using (public.is_management()) with check (public.is_management());

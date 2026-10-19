@@ -10,21 +10,24 @@ Next.js (App Router) + Supabase + Vercel.
 3. **Env vars**: copy `.env.example` to `.env.local` locally, and add the same two values in Vercel > Project > Settings > Environment Variables.
 4. **Vercel**: import this repo. No other config needed.
 
-## Admin panel
+## Admin panel and roles
 
-Staff manage everything at `/admin` (there is also a small "Staff" link in the site footer).
+Staff sign in at `/admin` (small "Staff" link in the site footer). Each staff member has one or both roles, enforced by database row level security, not just hidden on screen:
 
-One-time setup:
-1. Run `supabase/migrations/0002_payments.sql` in the SQL Editor.
-2. In Vercel, add `SUPABASE_SERVICE_ROLE_KEY` (Supabase > Project Settings > API > service_role). It stays on the server and is only used to create and reset student logins. Never put it in code or share it.
-3. Create the staff login: Supabase > Authentication > Users > Add user (real email, a password, Auto Confirm). Then run:
-   `insert into staff (user_id, full_name) select id, 'Full Name' from auth.users where email = 'their@email.com';`
+- **Management**: students, fees, payments, enrolment numbers, enquiries, staff and roles, all modules, can change any mark.
+- **Lecturer**: only the modules assigned to them. Class list (names and student IDs only), CA and exam marks, notes uploads, class schedule with Meet/Zoom links, messages to their class. No fees, payments, phone numbers or enquiries.
 
-What staff can do:
-- **Students**: add a student (creates the portal login too), search, edit details and status, set remarks.
-- **Payments**: record a payment; the balance drops automatically and the student sees it in the portal.
-- **Modules**: set each module to Not started / In progress / Completed, with a grade.
-- **Logins**: change a student's password, or create a login for an older record.
-- **Announcements**: post to everyone (website + portal) or students only; delete old ones.
-- **Enquiries**: see Admissions form submissions, call or WhatsApp in one tap, mark handled.
+Final mark = CA 40% + Exam 60% (calculated by the database). Students see marks as soon as they are saved; every change records who made it and when.
 
+One-time setup, in order:
+1. Run `supabase/migrations/0002_payments.sql`, then `0003_roles.sql`, in the SQL Editor. Existing staff become Management.
+2. In Vercel, set `SUPABASE_SERVICE_ROLE_KEY` (Supabase > Project Settings > API > service_role). Server-only; used to create and reset logins.
+3. First manager only: create the login in Supabase (Authentication > Users > Add user, Auto Confirm), then run
+   `insert into staff (user_id, full_name, is_management) select id, 'Full Name', true from auth.users where email = 'their@email.com';`
+   After that, add all other staff from **Admin > Staff**.
+
+## Day-to-day
+
+- **Students**: Admin > Students > + Add student creates the record and portal login. Students sign in at `/portal` with their ID (e.g. `MTI-2026-001`).
+- **Fees**: record payments on the student's page; the balance updates automatically.
+- **Lecturers**: Admin > Teaching > open a module to enter marks, upload notes, schedule classes and message the class.

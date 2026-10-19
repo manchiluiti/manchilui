@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ActionForm from "@/components/ActionForm";
+import GradeBadge from "@/components/GradeBadge";
+import { gradeFor, type GradeBand } from "@/lib/grades";
 import { kwacha, managementPage, mark, MODULE_STATUSES, PAY_METHODS, STATUSES } from "@/lib/admin";
 import { recordPayment, saveStudentMarks, setPassword, updateStudent } from "../../../actions";
 
@@ -11,12 +13,14 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
   const { created } = await searchParams;
   const { supabase } = await managementPage();
 
-  const [{ data: s }, { data: acc }, { data: mods }, { data: pays }] = await Promise.all([
+  const [{ data: s }, { data: acc }, { data: mods }, { data: pays }, { data: scaleRows }] = await Promise.all([
     supabase.from("students").select("*").eq("id", id).maybeSingle(),
     supabase.from("student_accounts").select("fees_balance,phone,remark").eq("student_id", id).maybeSingle(),
     supabase.from("student_modules").select("module_code,status,ca_mark,exam_mark,final_mark,modules(name,sort)").eq("student_id", id),
     supabase.from("payments").select("id,amount,method,reference,paid_on").eq("student_id", id).order("paid_on", { ascending: false }).order("created_at", { ascending: false }),
+    supabase.from("grade_scale").select("letter,min_mark,remark,is_pass"),
   ]);
+  const scale = (scaleRows ?? []) as GradeBand[];
   if (!s) notFound();
   const bal = Number(acc?.fees_balance ?? 0);
 
@@ -93,7 +97,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
                       </select>
                       <input name={`ca_${m.module_code}`} defaultValue={m.ca_mark ?? ""} inputMode="decimal" placeholder="–" aria-label={`${m.modules.name} CA mark`} />
                       <input name={`exam_${m.module_code}`} defaultValue={m.exam_mark ?? ""} inputMode="decimal" placeholder="–" aria-label={`${m.modules.name} exam mark`} />
-                      <span className="final">{mark(m.final_mark)}</span>
+                      <span className="final">{mark(m.final_mark)} <GradeBadge grade={gradeFor(m.final_mark, scale)} /></span>
                     </div>
                   ))}
                 </div>

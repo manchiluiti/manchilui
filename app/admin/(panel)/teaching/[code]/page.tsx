@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import ActionForm from "@/components/ActionForm";
+import GradeBadge from "@/components/GradeBadge";
 import NoteUpload from "@/components/NoteUpload";
+import { gradeFor, type GradeBand } from "@/lib/grades";
 import { fmtWhen, getStaff, mark, MODULE_STATUSES } from "@/lib/admin";
 import { createClass, deleteAnnouncement, deleteClass, deleteNote, postModuleAnnouncement, saveModuleMarks } from "../../../actions";
 
@@ -28,14 +30,16 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
   }
 
   const since = new Date(Date.now() - 2 * 3600e3).toISOString();
-  const [{ data: rows }, { data: notes }, { data: classes }, { data: anns }, { data: people }, { data: lecturers }] = await Promise.all([
+  const [{ data: rows }, { data: notes }, { data: classes }, { data: anns }, { data: people }, { data: lecturers }, { data: scaleRows }] = await Promise.all([
     sb.from("student_modules").select("student_id,status,ca_mark,exam_mark,final_mark,marks_updated_by,marks_updated_at,students(full_name,student_no,status)").eq("module_code", code),
     sb.from("notes").select("id,title,file_path,file_name,file_size,created_at,uploaded_by").eq("module_code", code).order("created_at", { ascending: false }),
     sb.from("classes").select("id,title,starts_at,duration_min,meeting_url,details").eq("module_code", code).gte("starts_at", since).order("starts_at"),
     sb.from("announcements").select("id,title,body,posted_on,posted_by").eq("module_code", code).order("created_at", { ascending: false }).limit(10),
     sb.from("staff").select("user_id,full_name"),
     sb.from("module_lecturers").select("lecturer_id").eq("module_code", code),
+    sb.from("grade_scale").select("letter,min_mark,remark,is_pass"),
   ]);
+  const scale = (scaleRows ?? []) as GradeBand[];
 
   const nameOf = (id: string | null) => (people ?? []).find((p) => p.user_id === id)?.full_name ?? "Staff";
   const students = ((rows ?? []) as unknown as Row[])
@@ -63,7 +67,8 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
         </div>
         <div className="bal">
           <span className="k">Class average</span>
-          <span className="v">{avg === null ? "–" : `${avg}%`}</span>
+          <span className="v">{avg === null ? "–" : `${avg}% · ${gradeFor(avg, scale)?.letter ?? ""}`}</span>
+          {graded.length > 0 && <span className="hint">{graded.filter((r) => gradeFor(r.final_mark, scale)?.is_pass).length} of {graded.length} passed</span>}
         </div>
       </div>
 
@@ -79,7 +84,7 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
             <ActionForm action={saveModuleMarks.bind(null, code)} submit="Save marks">
               <div className="tablewrap flat">
                 <table className="table marks-table">
-                  <thead><tr><th>Student</th><th>Status</th><th className="num">CA</th><th className="num">Exam</th><th className="num">Final</th></tr></thead>
+                  <thead><tr><th>Student</th><th>Status</th><th className="num">CA</th><th className="num">Exam</th><th className="num">Final</th><th className="num">Grade</th></tr></thead>
                   <tbody>
                     {students.map((r) => (
                       <tr key={r.student_id}>
@@ -97,6 +102,7 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
                         <td className="num"><input name={`ca_${r.student_id}`} defaultValue={r.ca_mark ?? ""} inputMode="decimal" placeholder="–" aria-label={`${r.students!.full_name} CA`} /></td>
                         <td className="num"><input name={`exam_${r.student_id}`} defaultValue={r.exam_mark ?? ""} inputMode="decimal" placeholder="–" aria-label={`${r.students!.full_name} exam`} /></td>
                         <td className="num final">{mark(r.final_mark)}</td>
+                        <td className="num"><GradeBadge grade={gradeFor(r.final_mark, scale)} /></td>
                       </tr>
                     ))}
                   </tbody>

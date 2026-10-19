@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import ActionForm from "@/components/ActionForm";
 import { fmtWhen, getStaff, myModules } from "@/lib/admin";
+import { saveGradeScale } from "../../actions";
 
 export default async function Teaching() {
   const staff = await getStaff();
@@ -14,6 +16,9 @@ export default async function Teaching() {
         staff.supabase.from("notes").select("module_code").in("module_code", codes),
       ])
     : [{ data: [] }, { data: [] }];
+
+  const { data: scale } = await staff.supabase.from("grade_scale").select("letter,min_mark,remark,is_pass").order("min_mark", { ascending: false });
+  const rows = [...(scale ?? []), { letter: "", min_mark: "", remark: "", is_pass: false }];
 
   const noteCount = (c: string) => (notes ?? []).filter((n) => n.module_code === c).length;
   const first = staff.name.split(" ")[0];
@@ -53,6 +58,34 @@ export default async function Teaching() {
           </div>
         </section>
       )}
+
+      <section className="rec" style={{ marginTop: 24, maxWidth: 720 }}>
+        <div className="rec-h"><h2>Grading scale</h2><span className="hint" style={{ margin: 0 }}>Final mark = CA 40% + Exam 60%</span></div>
+        <div className="rec-b" style={{ paddingBlock: 16 }}>
+          {staff.isManagement ? (
+            <ActionForm action={saveGradeScale} submit="Save grading scale" variant="navy">
+              <div className="scale">
+                <div className="scale-row scale-head"><span>Grade</span><span>From (%)</span><span>Remark</span><span>Pass</span></div>
+                {rows.map((g, i) => (
+                  <div className="scale-row" key={i}>
+                    <input name="letter" defaultValue={g.letter} placeholder={g.letter ? "" : "New"} aria-label="Grade letter" />
+                    <input name="min_mark" defaultValue={g.min_mark === "" ? "" : Number(g.min_mark)} inputMode="decimal" aria-label="Minimum mark" />
+                    <input name="remark" defaultValue={g.remark} aria-label="Remark" />
+                    <label><input type="checkbox" name={`pass_${i}`} defaultChecked={g.is_pass} /> Pass</label>
+                  </div>
+                ))}
+              </div>
+              <p className="hint">Each grade starts at its minimum mark and runs up to the next one. Clear a letter to remove that grade; use the empty row to add one.</p>
+            </ActionForm>
+          ) : (
+            <div className="scale">
+              {(scale ?? []).map((g) => (
+                <div className="row" key={g.letter}><div><b>{g.letter}</b><small>{Number(g.min_mark)}% and above · {g.remark}</small></div></div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
     </>
   );
 }

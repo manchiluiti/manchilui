@@ -392,3 +392,37 @@ export async function removeStaffAccess(userId: string) {
   await me.supabase.from("staff").update({ is_management: false, is_lecturer: false }).eq("user_id", userId);
   refresh();
 }
+
+/* =================== Grading scale (management) =================== */
+
+export async function saveGradeScale(_: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const letters = fd.getAll("letter").map((v) => String(v).trim().toUpperCase());
+    const rows = letters.map((letter, i) => ({
+      letter,
+      min_mark: Number(String(fd.getAll("min_mark")[i] ?? "").trim()),
+      remark: String(fd.getAll("remark")[i] ?? "").trim(),
+      is_pass: fd.get(`pass_${i}`) === "on",
+    })).filter((r) => r.letter);
+
+    if (rows.length < 2) return { error: "Keep at least two grades." };
+    for (const r of rows) {
+      if (!/^[A-Z][+-]?$/.test(r.letter)) return { error: `"${r.letter}" isn't a valid grade. Use letters like A, B+ or C-.` };
+      if (!Number.isFinite(r.min_mark) || r.min_mark < 0 || r.min_mark > 100) return { error: `Minimum mark for ${r.letter} must be 0 to 100.` };
+      if (!r.remark) return { error: `Add a remark for ${r.letter}, for example Distinction or Fail.` };
+    }
+    if (new Set(rows.map((r) => r.letter)).size !== rows.length) return { error: "Each grade letter can only appear once." };
+    if (new Set(rows.map((r) => r.min_mark)).size !== rows.length) return { error: "Two grades have the same minimum mark." };
+    if (!rows.some((r) => r.min_mark === 0)) return { error: "The lowest grade must start at 0." };
+
+    const { error: delErr } = await supabase.from("grade_scale").delete().neq("letter", "");
+    if (delErr) return { error: delErr.message };
+    const { error } = await supabase.from("grade_scale").insert(rows);
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: "Grading scale saved. All grades update straight away." };
+  } catch (e) {
+    return fail(e);
+  }
+}

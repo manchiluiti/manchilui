@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import Announcements, { type Announcement } from "@/components/Announcements";
+import GradeBadge from "@/components/GradeBadge";
 import Logo from "@/components/Logo";
+import { gradeFor, type GradeBand } from "@/lib/grades";
 import { createClient } from "@/lib/supabase/server";
 import { SITE } from "@/lib/site";
 import { signOut } from "./actions";
@@ -37,14 +39,16 @@ export default async function Portal() {
   }
 
   const since = new Date(Date.now() - 2 * 3600e3).toISOString();
-  const [{ data: acc }, { data: mods }, { data: ann }, { data: pays }, { data: classes }, { data: notes }] = await Promise.all([
+  const [{ data: acc }, { data: mods }, { data: ann }, { data: pays }, { data: classes }, { data: notes }, { data: scaleRows }] = await Promise.all([
     supabase.from("student_accounts").select("fees_balance,remark").eq("student_id", student.id).maybeSingle(),
     supabase.from("student_modules").select("module_code,status,ca_mark,exam_mark,final_mark,modules(name,sort)").eq("student_id", student.id),
     supabase.from("announcements").select("id,title,body,posted_on,module_code").order("posted_on", { ascending: false }).order("created_at", { ascending: false }).limit(8),
     supabase.from("payments").select("id,amount,method,paid_on").eq("student_id", student.id).order("paid_on", { ascending: false }).limit(10),
     supabase.from("classes").select("id,module_code,title,starts_at,duration_min,meeting_url,details").gte("starts_at", since).order("starts_at").limit(8),
     supabase.from("notes").select("id,module_code,title,file_path,file_name,created_at").order("created_at", { ascending: false }),
+    supabase.from("grade_scale").select("letter,min_mark,remark,is_pass").order("min_mark", { ascending: false }),
   ]);
+  const scale = (scaleRows ?? []) as GradeBand[];
 
   const modules = ((mods ?? []) as unknown as ModuleRow[]).sort((a, b) => a.modules.sort - b.modules.sort);
   const done = modules.filter((m) => m.status === "Completed").length;
@@ -101,7 +105,7 @@ export default async function Portal() {
             <div className="prog"><span style={{ width: `${modules.length ? (done / modules.length) * 100 : 0}%` }} /></div>
             <div className="rec-b" style={{ overflowX: "auto" }}>
               <table className="results">
-                <thead><tr><th>Module</th><th className="num">CA</th><th className="num">Exam</th><th className="num">Final</th></tr></thead>
+                <thead><tr><th>Module</th><th className="num">CA</th><th className="num">Exam</th><th className="num">Final</th><th className="num">Grade</th></tr></thead>
                 <tbody>
                   {modules.map((m) => (
                     <tr key={m.module_code}>
@@ -109,11 +113,12 @@ export default async function Portal() {
                       <td className="num">{pct(m.ca_mark)}</td>
                       <td className="num">{pct(m.exam_mark)}</td>
                       <td className="num final">{pct(m.final_mark)}</td>
+                      <td className="num"><GradeBadge grade={gradeFor(m.final_mark, scale)} /></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <p className="hint" style={{ padding: "10px 0 6px" }}>Final mark = CA 40% + Exam 60%.</p>
+              <p className="hint" style={{ padding: "10px 0 6px" }}>Final mark = CA 40% + Exam 60%. Grades: {scale.map((g) => `${g.letter} ${Number(g.min_mark)}+`).join(", ")}. Pass mark {Number(scale.filter((g) => g.is_pass).at(-1)?.min_mark ?? 50)}%.</p>
             </div>
           </div>
 

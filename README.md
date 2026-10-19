@@ -20,7 +20,7 @@ Staff sign in at `/admin` (small "Staff" link in the site footer). Each staff me
 Final mark = CA 40% + Exam 60% (calculated by the database). Students see marks as soon as they are saved; every change records who made it and when.
 
 One-time setup, in order:
-1. Run `supabase/migrations/0002_payments.sql`, then `0003_roles.sql`, in the SQL Editor. Existing staff become Management.
+1. Run `supabase/migrations/0002_payments.sql`, `0003_roles.sql` and `0004_grades.sql`, in that order, in the SQL Editor. Existing staff become Management.
 2. In Vercel, set `SUPABASE_SERVICE_ROLE_KEY` (Supabase > Project Settings > API > service_role). Server-only; used to create and reset logins.
 3. First manager only: create the login in Supabase (Authentication > Users > Add user, Auto Confirm), then run
    `insert into staff (user_id, full_name, is_management) select id, 'Full Name', true from auth.users where email = 'their@email.com';`
@@ -31,3 +31,4 @@ One-time setup, in order:
 - **Students**: Admin > Students > + Add student creates the record and portal login. Students sign in at `/portal` with their ID (e.g. `MTI-2026-001`).
 - **Fees**: record payments on the student's page; the balance updates automatically.
 - **Lecturers**: Admin > Teaching > open a module to enter marks, upload notes, schedule classes and message the class.
+- **Grades**: letter grades come from the grading scale (default A+ 86, A 76, B+ 68, B 62, C+ 56, C 50 pass, D+ 40, D 0). Management can change it at Admin > Teaching > Grading scale.

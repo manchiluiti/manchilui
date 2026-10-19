@@ -360,3 +360,49 @@ a.fcard:hover .more { transform: translateX(8px); }
 .btn.wa:hover { background: #1EBE5A; }
 .staff-link { color: var(--muted-2); }
 .staff-link:hover { color: var(--orange); }
+
+/* roles, teaching */
+.abar .who em { font-style: normal; color: var(--orange); font-size: .78rem; font-weight: 700; margin-left: 6px; letter-spacing: .06em; text-transform: uppercase; }
+.rolekey { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.rolekey > div { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 16px 18px; color: var(--muted); font-size: .92rem; }
+.rolekey b { color: var(--navy); display: block; margin-bottom: 2px; }
+@media (max-width: 760px) { .rolekey { grid-template-columns: 1fr; } }
+.warnbox { background: var(--warn-bg); color: var(--warn); border-radius: 12px; padding: 12px 16px; font-weight: 600; margin-bottom: 20px; }
+.staffcard summary { cursor: pointer; list-style: none; }
+.staffcard summary::-webkit-details-marker { display: none; }
+.staffcard[open] summary { border-bottom: 1px solid #F3F4F6; }
+.sub { display: block; color: var(--muted); font-size: .82rem; font-weight: 400; }
+.checks { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+.checks legend { font-size: .875rem; font-weight: 600; color: var(--navy); margin-bottom: 6px; padding: 0; }
+.checks label { display: flex; align-items: center; gap: 8px; color: var(--navy); font-size: .95rem; cursor: pointer; }
+.checks input { width: 18px; height: 18px; accent-color: var(--orange); }
+.checks .code { font-size: .74rem; font-weight: 700; color: var(--muted-2); }
+.checks.inline { display: flex; gap: 24px; flex-wrap: wrap; }
+.mcode { font-size: .78rem; font-weight: 800; letter-spacing: .12em; color: var(--orange); margin-bottom: 8px; }
+.row-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.tablewrap.flat { border: 0; border-radius: 0; }
+.marks-table { min-width: 560px; }
+.marks-table td { vertical-align: middle; }
+.marks-table select, .marks-table input { font: inherit; font-size: .92rem; color: var(--navy); border: 1px solid #D1D5DB; border-radius: 10px; padding: 8px 10px; background: #fff; }
+.marks-table input { width: 76px; text-align: right; }
+.marks-table th:first-child, .marks-table td:first-child { padding-left: 0; }
+.final { font-weight: 800; color: var(--navy); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mhead { display: grid; grid-template-columns: 1fr 140px 70px 70px 60px; gap: 10px; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-2); padding-bottom: 6px; }
+.modrow.marks { grid-template-columns: 1fr 140px 70px 70px 60px; }
+.modrow.marks .final { text-align: right; }
+.modrow.marks input { text-align: right; }
+@media (max-width: 560px) {
+  .mhead { display: none; }
+  .modrow.marks { grid-template-columns: 1fr 1fr 1fr; }
+  .modrow.marks .mname { grid-column: 1 / -1; }
+  .modrow.marks select { grid-column: 1 / -1; }
+}
+/* portal results */
+.results { width: 100%; border-collapse: collapse; }
+.results th { text-align: left; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-2); padding: 10px 0; border-bottom: 1px solid var(--border); }
+.results td { padding: 12px 0; border-bottom: 1px solid #F3F4F6; color: var(--navy); vertical-align: middle; }
+.results tr:last-child td { border-bottom: 0; }
+.results .num { text-align: right; font-variant-numeric: tabular-nums; padding-left: 12px; white-space: nowrap; }
+.results .code { font-size: .74rem; font-weight: 700; color: var(--muted-2); margin-right: 8px; }
+.notegroup + .notegroup { margin-top: 8px; }
+.notegroup h3 { font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; color: var(--orange); padding-top: 12px; }

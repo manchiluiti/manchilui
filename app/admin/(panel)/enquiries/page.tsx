@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { requireStaff } from "@/lib/admin";
+import { managementPage } from "@/lib/admin";
 import { setEnquiryHandled } from "../../actions";
 
 export default async function EnquiriesAdmin({ searchParams }: { searchParams: Promise<{ show?: string }> }) {
   const { show } = await searchParams;
   const all = show === "all";
-  const { supabase } = await requireStaff();
+  const { supabase } = await managementPage();
   let q = supabase.from("enquiries").select("*").order("created_at", { ascending: false });
   if (!all) q = q.eq("handled", false);
   const { data } = await q;

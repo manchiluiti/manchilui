@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { kwacha, requireStaff, STATUSES } from "@/lib/admin";
+import { kwacha, managementPage, STATUSES } from "@/lib/admin";
 
 const pillFor = (s: string) => (s === "Registered" || s === "Completed" ? "ok" : s === "Suspended" || s === "Withdrawn" ? "warn" : "wait");
 
 export default async function Students({ searchParams }: { searchParams: Promise<{ q?: string; status?: string }> }) {
   const { q = "", status = "" } = await searchParams;
-  const { supabase } = await requireStaff();
-  let query = supabase.from("students").select("id,student_no,full_name,session,status,fees_balance,user_id").order("student_no", { ascending: false });
+  const { supabase } = await managementPage();
+  let query = supabase.from("students").select("id,student_no,full_name,session,status,user_id,student_accounts(fees_balance)").order("student_no", { ascending: false });
   if (status) query = query.eq("status", status);
   const term = q.trim().replace(/[%,()]/g, "");
   if (term) query = query.or(`full_name.ilike.%${term}%,student_no.ilike.%${term}%`);
@@ -34,16 +34,19 @@ export default async function Students({ searchParams }: { searchParams: Promise
         <table className="table">
           <thead><tr><th>Student ID</th><th>Name</th><th>Session</th><th>Status</th><th className="num">Balance</th><th>Login</th></tr></thead>
           <tbody>
-            {(data ?? []).map((s) => (
+            {(data ?? []).map((s) => {
+              const bal = Number((s.student_accounts as unknown as { fees_balance: number } | null)?.fees_balance ?? 0);
+              return (
               <tr key={s.id}>
                 <td><Link href={`/admin/students/${s.id}`} className="idlink">{s.student_no}</Link></td>
                 <td><Link href={`/admin/students/${s.id}`}>{s.full_name}</Link></td>
                 <td>{s.session}</td>
                 <td><span className={`pill ${pillFor(s.status)}`}>{s.status}</span></td>
-                <td className="num" style={{ color: Number(s.fees_balance) > 0 ? "var(--warn)" : "var(--ok)" }}>{Number(s.fees_balance) > 0 ? kwacha(s.fees_balance) : "Paid"}</td>
+                <td className="num" style={{ color: bal > 0 ? "var(--warn)" : "var(--ok)" }}>{bal > 0 ? kwacha(bal) : "Paid"}</td>
                 <td>{s.user_id ? "✓" : <span style={{ color: "var(--warn)" }}>None</span>}</td>
               </tr>
-            ))}
+              );
+            })}
             {(data ?? []).length === 0 && <tr><td colSpan={6} className="muted-row">{q || status ? "No students match that search." : "No students yet. Add the first one."}</td></tr>}
           </tbody>
         </table>

@@ -1,10 +1,10 @@
 import ActionForm from "@/components/ActionForm";
-import { requireStaff } from "@/lib/admin";
+import { managementPage } from "@/lib/admin";
 import { createAnnouncement, deleteAnnouncement } from "../../actions";
 
 export default async function AnnouncementsAdmin() {
-  const { supabase } = await requireStaff();
-  const { data } = await supabase.from("announcements").select("id,title,body,audience,posted_on").order("posted_on", { ascending: false }).order("created_at", { ascending: false });
+  const { supabase } = await managementPage();
+  const { data } = await supabase.from("announcements").select("id,title,body,audience,posted_on,module_code").order("posted_on", { ascending: false }).order("created_at", { ascending: false });
   const today = new Date().toISOString().slice(0, 10);
 
   return (
@@ -34,7 +34,7 @@ export default async function AnnouncementsAdmin() {
               <div className="row" key={a.id} style={{ alignItems: "flex-start" }}>
                 <div style={{ minWidth: 0 }}>
                   <b>{a.title}</b>
-                  <small>{a.posted_on} · {a.audience === "public" ? "Everyone" : "Students only"}</small>
+                  <small>{a.posted_on} · {a.audience === "public" ? "Everyone" : a.audience === "module" ? `${a.module_code} class` : "Students only"}</small>
                   <p className="abody">{a.body}</p>
                 </div>
                 <form action={deleteAnnouncement.bind(null, a.id)}><button className="del" type="submit">Delete</button></form>

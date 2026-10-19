@@ -1,10 +1,10 @@
 import Link from "next/link";
 import ActionForm from "@/components/ActionForm";
-import { requireStaff } from "@/lib/admin";
+import { managementPage } from "@/lib/admin";
 import { createStudent } from "../../../actions";
 
 export default async function NewStudent() {
-  const { supabase } = await requireStaff();
+  const { supabase } = await managementPage();
   const year = new Date().getFullYear();
   const { data } = await supabase.from("students").select("student_no").like("student_no", `MTI-${year}-%`).order("student_no", { ascending: false }).limit(1);
   const last = data?.[0]?.student_no ? Number(data[0].student_no.slice(-3)) : 0;

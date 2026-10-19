@@ -18,13 +18,16 @@ export default async function PanelLayout({ children }: { children: React.ReactN
     return (
       <div className="login"><div className="wrap"><div className="lcard">
         <h1>No staff access</h1>
-        <p style={{ textAlign: "center" }}>You&apos;re signed in as {user.email}, which isn&apos;t a staff account.</p>
+        <p style={{ textAlign: "center" }}>You&apos;re signed in as {user.email}, which doesn&apos;t have staff access. Ask management to give you a role.</p>
         <form action={staffSignOut}><button className="btn btn-navy">Sign out</button></form>
       </div></div></div>
     );
   }
 
-  const { count } = await staff.supabase.from("enquiries").select("id", { count: "exact", head: true }).eq("handled", false);
+  const { count } = staff.isManagement
+    ? await staff.supabase.from("enquiries").select("id", { count: "exact", head: true }).eq("handled", false)
+    : { count: 0 };
+  const role = staff.isManagement && staff.isLecturer ? "Management · Lecturer" : staff.isManagement ? "Management" : "Lecturer";
 
   return (
     <div className="admin">
@@ -32,12 +35,12 @@ export default async function PanelLayout({ children }: { children: React.ReactN
         <div className="wrap abar-row">
           <Link href="/admin" className="brand"><Logo size={40} /><b>Manchilui Admin</b></Link>
           <div className="abar-r">
-            <span className="who">{staff.name}</span>
+            <span className="who">{staff.name} <em>{role}</em></span>
             <Link href="/" className="alink">View site</Link>
             <form action={staffSignOut}><button className="btn btn-orange btn-sm">Sign out</button></form>
           </div>
         </div>
-        <div className="wrap"><AdminNav newEnquiries={count ?? 0} /></div>
+        <div className="wrap"><AdminNav isManagement={staff.isManagement} isLecturer={staff.isLecturer} newEnquiries={count ?? 0} /></div>
       </header>
       <main className="wrap amain">{children}</main>
     </div>

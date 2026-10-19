@@ -1,19 +1,19 @@
 import Link from "next/link";
-import { kwacha, requireStaff } from "@/lib/admin";
+import { kwacha, managementPage } from "@/lib/admin";
 
 export default async function Dashboard() {
-  const { supabase, name } = await requireStaff();
+  const { supabase, name } = await managementPage();
   const [{ data: students }, { data: enq }, { data: pays }, { count: newEnq }] = await Promise.all([
-    supabase.from("students").select("status,fees_balance"),
+    supabase.from("students").select("status,student_accounts(fees_balance)"),
     supabase.from("enquiries").select("id,full_name,phone,preferred_intake,created_at,handled").order("created_at", { ascending: false }).limit(5),
     supabase.from("payments").select("amount,paid_on,students(full_name,student_no)").order("created_at", { ascending: false }).limit(5),
     supabase.from("enquiries").select("id", { count: "exact", head: true }).eq("handled", false),
   ]);
 
-  const all = students ?? [];
+  const all = (students ?? []).map((s) => ({ status: s.status, bal: Number((s.student_accounts as unknown as { fees_balance: number } | null)?.fees_balance ?? 0) }));
   const active = all.filter((s) => s.status === "Registered").length;
-  const owed = all.reduce((t, s) => t + Math.max(0, Number(s.fees_balance)), 0);
-  const owing = all.filter((s) => Number(s.fees_balance) > 0).length;
+  const owed = all.reduce((t, s) => t + Math.max(0, s.bal), 0);
+  const owing = all.filter((s) => s.bal > 0).length;
   const first = name.split(" ")[0];
 
   return (

@@ -3,7 +3,7 @@ export const SITE = {
   place: "Eastrise · Chipata · Zambia",
   address: "Eastrise, Chipata, Eastern Province, Zambia",
   directorPhone: "+260 970 615 997",
-  email: "manchiluiti@gmail.com",
+  email: "info@manchilui.com",
   programme: "Diploma in Clearing & Forwarding",
 };
 

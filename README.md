@@ -20,7 +20,7 @@ Staff sign in at `/admin` (small "Staff" link in the site footer). Each staff me
 Final mark = CA 40% + Exam 60% (calculated by the database). Students see marks as soon as they are saved; every change records who made it and when.
 
 One-time setup, in order:
-1. Run `supabase/migrations/0002_payments.sql`, `0003_roles.sql`, `0004_grades.sql` and `0005_messages.sql`, in that order, in the SQL Editor. Existing staff become Management.
+1. Run `supabase/migrations/0002_payments.sql`, `0003_roles.sql`, `0004_grades.sql`, `0005_messages.sql` and `0006_payroll.sql`, in that order, in the SQL Editor. Existing staff become Management.
 2. In Vercel, set `SUPABASE_SERVICE_ROLE_KEY` (Supabase > Project Settings > API > service_role). Server-only; used to create and reset logins.
 3. First manager only: create the login in Supabase (Authentication > Users > Add user, Auto Confirm), then run
    `insert into staff (user_id, full_name, is_management) select id, 'Full Name', true from auth.users where email = 'their@email.com';`
@@ -34,3 +34,4 @@ One-time setup, in order:
 - **Grades**: A+ 90, A 80, B+ 70, B 60, C+ 50, C 40 (pass mark), F below 40. Management can change it at Admin > Teaching > Grading scale.
 - **Payment corrections**: on a student's page, open Edit on any payment to change it or remove it; the balance adjusts automatically.
 - **Messages**: Admin > Messages sends a private message to one student, one staff member, or all lecturers, with read receipts. Students read them in the portal; lecturers in Admin > Inbox. For a notice to every student, use Announcements > Students only.
+- **Payroll**: Admin > Payroll. Set each staff member's basic salary once, then each month click Start payroll, adjust allowances/deductions, and mark payslips paid (individually with a reference, or all at once). Staff see paid payslips under My pay and can print them. Paid payslips are locked; mark unpaid to correct one.

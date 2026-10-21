@@ -493,3 +493,112 @@ export async function deleteMessage(id: string) {
   await supabase.from("messages").delete().eq("id", id);
   refresh();
 }
+
+/* =================== Payroll (management) =================== */
+
+const PAY_TO_METHODS = ["Bank", "Mobile money", "Cash"] as const;
+const friendlyPayErr = (msg: string) =>
+  /payslips_check|check constraint/.test(msg) ? "Deductions can't be more than basic pay plus allowances." : msg;
+
+export async function saveStaffPay(userId: string, _: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const basic_salary = money(str(fd, "basic_salary") || "0");
+    const pay_method = str(fd, "pay_method");
+    if (Number.isNaN(basic_salary) || basic_salary < 0) return { error: "Basic salary must be a number." };
+    if (!PAY_TO_METHODS.includes(pay_method as never)) return { error: "Choose how they are paid." };
+    const { error } = await supabase.from("staff_pay").upsert({
+      user_id: userId, basic_salary, pay_method, pay_to: str(fd, "pay_to") || null, updated_at: new Date().toISOString(),
+    });
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: "Saved." };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function startPayroll(_: FormState, fd: FormData): Promise<FormState> {
+  let runId = "";
+  try {
+    const { supabase } = await requireManagement();
+    const month = str(fd, "month"); // "2026-10"
+    if (!/^\d{4}-\d{2}$/.test(month)) return { error: "Choose the month." };
+    const { data, error } = await supabase.rpc("start_payroll", { p_period: `${month}-01` });
+    if (error) return { error: error.message };
+    runId = data as string;
+  } catch (e) {
+    return fail(e);
+  }
+  refresh();
+  redirect(`/admin/payroll/${runId}`);
+}
+
+export async function savePayslip(id: string, _: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const basic = money(str(fd, "basic") || "0");
+    const allowances = money(str(fd, "allowances") || "0");
+    const deductions = money(str(fd, "deductions") || "0");
+    const method = str(fd, "method");
+    if ([basic, allowances, deductions].some((n) => Number.isNaN(n) || n < 0)) return { error: "Amounts must be numbers of 0 or more." };
+    if (!PAY_TO_METHODS.includes(method as never)) return { error: "Choose how they are paid." };
+    const { error } = await supabase.from("payslips").update({ basic, allowances, deductions, method, note: str(fd, "note") || null }).eq("id", id);
+    if (error) return { error: friendlyPayErr(error.message) };
+    refresh();
+    return { ok: "Saved." };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function markPayslipPaid(id: string, _: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const date = str(fd, "paid_on");
+    const { error } = await supabase.from("payslips").update({
+      status: "paid",
+      reference: str(fd, "reference") || null,
+      paid_at: date ? `${date}T12:00:00+02:00` : null,
+    }).eq("id", id);
+    if (error) return { error: friendlyPayErr(error.message) };
+    refresh();
+    return { ok: "Marked as paid. They can see it under My pay now." };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function markPayslipUnpaid(id: string) {
+  const { supabase } = await requireManagement();
+  await supabase.from("payslips").update({ status: "pending", reference: null }).eq("id", id);
+  refresh();
+}
+
+export async function markAllPaid(runId: string, _: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const date = str(fd, "paid_on");
+    const { data, error } = await supabase
+      .from("payslips")
+      .update({ status: "paid", paid_at: date ? `${date}T12:00:00+02:00` : null })
+      .eq("run_id", runId)
+      .eq("status", "pending")
+      .gt("net_pay", 0)
+      .select("id");
+    if (error) return { error: friendlyPayErr(error.message) };
+    refresh();
+    return { ok: `${data?.length ?? 0} payslip${data?.length === 1 ? "" : "s"} marked as paid.` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function deletePayrollRun(runId: string) {
+  const { supabase } = await requireManagement();
+  const { count } = await supabase.from("payslips").select("id", { count: "exact", head: true }).eq("run_id", runId).eq("status", "paid");
+  if ((count ?? 0) > 0) return; // never delete a run with paid payslips
+  await supabase.from("payroll_runs").delete().eq("id", runId);
+  refresh();
+  redirect("/admin/payroll");
+}

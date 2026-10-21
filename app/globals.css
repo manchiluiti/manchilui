@@ -442,3 +442,29 @@ a.fcard:hover .more { transform: translateX(8px); }
 .payedit[open] { flex-basis: 100%; }
 .payedit .aform { margin-top: 12px; background: var(--bg-soft); border-radius: 14px; padding: 16px; }
 .row.wrapable { flex-wrap: wrap; }
+
+/* payslip */
+.payslip-wrap { max-width: 760px; margin: 0 auto; }
+.payslip { background: #fff; border-radius: 20px; border: 1px solid var(--border); padding: 32px; display: grid; gap: 24px; }
+.payslip header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; border-bottom: 3px solid var(--orange); padding-bottom: 20px; }
+.payslip .ps-name { color: var(--navy); font-size: 1.15rem; display: block; }
+.payslip header small { color: var(--muted); }
+.ps-title { text-align: right; }
+.ps-title span { display: block; font-size: .75rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--orange); }
+.ps-title b { color: var(--navy); font-size: 1.3rem; }
+.ps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
+.ps-grid span { display: block; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-2); }
+.ps-grid b { color: var(--navy); }
+.ps-table { width: 100%; border-collapse: collapse; }
+.ps-table td { padding: 12px 0; border-bottom: 1px solid #F3F4F6; color: var(--navy); }
+.ps-table .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.ps-table tr.net td { border-top: 2px solid var(--navy); border-bottom: 0; font-weight: 800; font-size: 1.15rem; }
+.ps-note { color: var(--muted); font-size: .92rem; }
+.payslip footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; }
+@media (max-width: 560px) { .payslip { padding: 22px; } .ps-grid { grid-template-columns: 1fr; } .ps-title { text-align: left; } }
+@media print {
+  .abar, .noprint, .floaters, .header, .footer { display: none !important; }
+  .admin, body { background: #fff !important; }
+  .amain { padding: 0 !important; }
+  .payslip { border: 0; padding: 0; }
+}

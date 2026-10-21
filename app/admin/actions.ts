@@ -24,6 +24,17 @@ const markVal = (v: string) => {
 const fail = (e: unknown): FormState => ({ error: e instanceof Error ? e.message : "Something went wrong. Try again." });
 const refresh = () => revalidatePath("/", "layout");
 
+/** Student login. With no password given, the student ID is the first password and must be changed at first sign-in. */
+async function createStudentLogin(auth: ReturnType<typeof adminAuth>, studentNo: string, password: string) {
+  const temp = !password;
+  return auth.createUser({
+    email: studentIdToEmail(studentNo),
+    password: temp ? studentNo.toUpperCase() : password,
+    email_confirm: true,
+    app_metadata: { must_change_password: temp },
+  });
+}
+
 export async function staffSignOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
@@ -47,7 +58,7 @@ export async function createStudent(_: FormState, fd: FormData): Promise<FormSta
     if (full_name.length < 2) return { error: "Enter the student's full name." };
     if (!session) return { error: "Enter the session, for example January – June 2027." };
     if (Number.isNaN(fees_balance)) return { error: "Fees balance must be a number, for example 2500." };
-    if (password.length < 6) return { error: "Password must be at least 6 characters." };
+    if (password && password.length < 8) return { error: "Password must be at least 8 characters, or leave it blank to use the student ID." };
 
     const auth = adminAuth();
 
@@ -61,7 +72,7 @@ export async function createStudent(_: FormState, fd: FormData): Promise<FormSta
       return { error: accErr.message };
     }
 
-    const { error: authErr } = await auth.createUser({ email: studentIdToEmail(student_no), password, email_confirm: true });
+    const { error: authErr } = await createStudentLogin(auth, student_no, password);
     if (authErr) {
       await supabase.from("students").delete().eq("id", row.id);
       return { error: `The login couldn't be created: ${authErr.message}` };
@@ -119,19 +130,23 @@ export async function setPassword(id: string, _: FormState, fd: FormData): Promi
   try {
     const { supabase } = await requireManagement();
     const password = String(fd.get("password") ?? "");
-    if (password.length < 6) return { error: "Password must be at least 6 characters." };
+    if (password && password.length < 8) return { error: "Password must be at least 8 characters, or leave it blank to reset to the student ID." };
     const { data: s, error } = await supabase.from("students").select("student_no,user_id").eq("id", id).single();
     if (error) return { error: error.message };
     const auth = adminAuth();
+    const temp = !password;
     if (s.user_id) {
-      const { error: e2 } = await auth.updateUserById(s.user_id, { password });
+      const { error: e2 } = await auth.updateUserById(s.user_id, {
+        password: temp ? s.student_no : password,
+        app_metadata: { must_change_password: temp },
+      });
       if (e2) return { error: e2.message };
-      return { ok: `Password changed. Give ${s.student_no} the new password.` };
+      return { ok: temp ? `Reset. ${s.student_no} signs in with their ID as the password and must choose a new one.` : `Password changed. Give ${s.student_no} the new password.` };
     }
-    const { error: e3 } = await auth.createUser({ email: studentIdToEmail(s.student_no), password, email_confirm: true });
+    const { error: e3 } = await createStudentLogin(auth, s.student_no, password);
     if (e3) return { error: e3.message };
     refresh();
-    return { ok: `Login created for ${s.student_no}.` };
+    return { ok: temp ? `Login created. ${s.student_no} signs in with their ID as the password the first time.` : `Login created for ${s.student_no}.` };
   } catch (e) {
     return fail(e);
   }
@@ -801,7 +816,7 @@ export async function registerApplicant(id: string, _: FormState, fd: FormData):
     const password = String(fd.get("password") ?? "");
     if (!/^MTI-\d{4}-\d{3}$/.test(student_no)) return { error: "Student ID must look like MTI-2026-001." };
     if (!session) return { error: "Enter the session, for example January – June 2027." };
-    if (password.length < 6) return { error: "Password must be at least 6 characters." };
+    if (password && password.length < 8) return { error: "Password must be at least 8 characters, or leave it blank to use the student ID." };
     const auth = adminAuth();
 
     const { data: row, error } = await supabase.from("students").insert({ student_no, full_name: app.full_name, session }).select("id").single();
@@ -811,7 +826,7 @@ export async function registerApplicant(id: string, _: FormState, fd: FormData):
       await supabase.from("students").delete().eq("id", row.id);
       return { error: accErr.message };
     }
-    const { error: authErr } = await auth.createUser({ email: studentIdToEmail(student_no), password, email_confirm: true });
+    const { error: authErr } = await createStudentLogin(auth, student_no, password);
     if (authErr) {
       await supabase.from("students").delete().eq("id", row.id);
       return { error: `The login couldn't be created: ${authErr.message}` };
@@ -823,4 +838,43 @@ export async function registerApplicant(id: string, _: FormState, fd: FormData):
   }
   refresh();
   redirect(`/admin/students/${newId}?created=1`);
+}
+
+/* =================== Bulk student import (management) =================== */
+
+export type ImportRow = { student_no: string; full_name: string; session: string; phone?: string; fees_balance?: string };
+export type ImportResult = { student_no: string; ok: boolean; msg: string };
+
+/** Imports up to 25 students per call. Each gets a login with their ID as the first password. */
+export async function importStudents(rows: ImportRow[]): Promise<ImportResult[]> {
+  const { supabase } = await requireManagement();
+  const auth = adminAuth();
+  const out: ImportResult[] = [];
+  for (const r of rows.slice(0, 25)) {
+    const student_no = (r.student_no ?? "").trim().toUpperCase();
+    const full_name = (r.full_name ?? "").trim().replace(/\s+/g, " ");
+    const session = (r.session ?? "").trim();
+    const fees = money(String(r.fees_balance ?? "").trim() || "0");
+    if (!/^MTI-\d{4}-\d{3}$/.test(student_no)) { out.push({ student_no: student_no || "(blank)", ok: false, msg: "ID must look like MTI-2026-001" }); continue; }
+    if (full_name.length < 2) { out.push({ student_no, ok: false, msg: "Name missing" }); continue; }
+    if (!session) { out.push({ student_no, ok: false, msg: "Session missing" }); continue; }
+    if (Number.isNaN(fees)) { out.push({ student_no, ok: false, msg: "Fees balance isn't a number" }); continue; }
+
+    const { data: row, error } = await supabase.from("students").insert({ student_no, full_name, session }).select("id").single();
+    if (error) { out.push({ student_no, ok: false, msg: error.code === "23505" ? "Already exists (skipped)" : error.message }); continue; }
+    const { error: accErr } = await supabase.from("student_accounts").upsert({ student_id: row.id, fees_balance: fees, phone: (r.phone ?? "").trim() || null });
+    if (accErr) { await supabase.from("students").delete().eq("id", row.id); out.push({ student_no, ok: false, msg: accErr.message }); continue; }
+    const { error: authErr } = await createStudentLogin(auth, student_no, "");
+    if (authErr) {
+      // A login may already exist from an earlier attempt; keep the record and link happens by trigger only on new logins.
+      const msg = /already/i.test(authErr.message)
+        ? "Record added, but an old login with this ID exists. Delete it in Supabase > Authentication, then use Reset password on their page."
+        : `Record added, login not created: ${authErr.message}. Use Reset password on their page.`;
+      out.push({ student_no, ok: false, msg });
+      continue;
+    }
+    out.push({ student_no, ok: true, msg: "Added" });
+  }
+  refresh();
+  return out;
 }

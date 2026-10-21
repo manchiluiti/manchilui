@@ -485,3 +485,5 @@ a.fcard:hover .more { transform: translateX(8px); }
 .letter p { color: var(--text); }
 .letter-title { font-size: 1.2rem; text-decoration: underline; text-underline-offset: 4px; }
 .letter .ps-table .num { text-align: right; }
+.alink-light { color: var(--on-navy); font-size: .88rem; font-weight: 600; }
+.alink-light:hover { color: var(--orange); }

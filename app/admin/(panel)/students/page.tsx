@@ -18,7 +18,10 @@ export default async function Students({ searchParams }: { searchParams: Promise
     <>
       <div className="ahead">
         <div><p className="eyebrow" style={{ fontSize: ".72rem" }}>Students</p><h1>{data?.length ?? 0} student{data?.length === 1 ? "" : "s"}</h1></div>
-        <Link href="/admin/students/new" className="btn btn-orange btn-sm">+ Add student</Link>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Link href="/admin/students/import" className="btn btn-navy btn-sm">Import from spreadsheet</Link>
+          <Link href="/admin/students/new" className="btn btn-orange btn-sm">+ Add student</Link>
+        </div>
       </div>
 
       <details className="rec" style={{ marginBottom: 16 }}>

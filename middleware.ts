@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
 
   const isStudentEmail = user?.email?.endsWith("@students.manchilui.com") ?? false;
 
-  if (path === "/portal" && !user) {
+  if (path.startsWith("/portal") && path !== "/portal/login" && !user) {
     return NextResponse.redirect(new URL("/portal/login", request.url));
   }
   if (path === "/portal/login" && user && isStudentEmail) {

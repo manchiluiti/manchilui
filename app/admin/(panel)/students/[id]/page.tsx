@@ -98,9 +98,9 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
           <section className="rec">
             <div className="rec-h"><h2>Portal login</h2><span className={`pill ${s.user_id ? "ok" : "warn"}`}>{s.user_id ? "Active" : "No login"}</span></div>
             <div className="rec-b" style={{ paddingBlock: 20 }}>
-              <ActionForm action={setPassword.bind(null, id)} submit={s.user_id ? "Change password" : "Create login"} variant="navy" resetOnSuccess>
-                <div className="field"><label htmlFor="pw">New password</label><input id="pw" name="password" autoComplete="new-password" placeholder="At least 6 characters" /></div>
-                <p className="hint">The student signs in with <b>{s.student_no}</b> and this password.</p>
+              <ActionForm action={setPassword.bind(null, id)} submit={s.user_id ? "Reset / change password" : "Create login"} variant="navy" resetOnSuccess>
+                <div className="field"><label htmlFor="pw">New password</label><input id="pw" name="password" autoComplete="new-password" placeholder="Blank = reset to student ID" /></div>
+                <p className="hint">Leave blank to reset the password to <b>{s.student_no}</b>; the student must then choose a new one when they sign in.</p>
               </ActionForm>
             </div>
           </section>

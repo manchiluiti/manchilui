@@ -46,6 +46,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <Link href="/admin" className="brand"><Logo size={40} /><b>Manchilui Admin</b></Link>
           <div className="abar-r">
             <span className="who">{staff.name} <em>{role}</em></span>
+            <Link href="/admin/account" className="alink">My account</Link>
             <Link href="/" className="alink">View site</Link>
             <form action={staffSignOut}><button className="btn btn-orange btn-sm">Sign out</button></form>
           </div>

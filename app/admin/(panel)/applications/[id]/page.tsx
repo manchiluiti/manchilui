@@ -94,7 +94,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
                   <div className="fgrid">
                     <div className="field"><label htmlFor="sn">Student ID</label><input id="sn" name="student_no" defaultValue={nextId} /></div>
                     <div className="field"><label htmlFor="ss">Session</label><input id="ss" name="session" placeholder="January – June 2027" /></div>
-                    <div className="field"><label htmlFor="sp">Portal password</label><input id="sp" name="password" autoComplete="new-password" placeholder="At least 6 characters" /></div>
+                    <div className="field"><label htmlFor="sp">Portal password (optional)</label><input id="sp" name="password" autoComplete="new-password" placeholder="Blank = student ID" /></div>
                   </div>
                 </ActionForm>
               </div>

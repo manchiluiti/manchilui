@@ -46,3 +46,5 @@ One-time setup, in order:
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - `AT_USERNAME`, `AT_API_KEY` (Africa's Talking), optional `AT_SENDER_ID` (registered sender name)
 - `CRON_SECRET` (any long random string; Vercel uses it to call the daily job in `vercel.json`, which also keeps the free Supabase project awake)
+- **Student logins**: by default a student's first password is their student ID; on first sign-in they must set their own (8+ characters, letters and numbers, not their ID). Students change it any time from the portal; staff from Admin > My account. "Reset password" with a blank box resets a student to their ID.
+- **Bulk import**: Admin > Students > Import from spreadsheet. CSV with columns Student ID, Full name, Session, Phone (optional), Fees balance (optional). Preview shows problems before anything is saved.

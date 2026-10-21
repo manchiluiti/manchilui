@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import Announcements, { type Announcement } from "@/components/Announcements";
 import GradeBadge from "@/components/GradeBadge";
@@ -24,6 +25,7 @@ export default async function Portal() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/portal/login");
+  if (user.app_metadata?.must_change_password) redirect("/portal/password");
 
   // Row level security returns only this student's own record.
   const { data: student } = await supabase.from("students").select("id,student_no,full_name,programme,session,status").eq("user_id", user.id).maybeSingle<Student>();
@@ -89,6 +91,7 @@ export default async function Portal() {
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}><Logo size={40} /><b>Student Portal</b></div>
           <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
             <span className="pid">{student.student_no}</span>
+            <Link href="/portal/password" className="alink-light">Change password</Link>
             <form action={signOut}><button className="btn btn-orange btn-sm">Sign out</button></form>
           </div>
         </div>

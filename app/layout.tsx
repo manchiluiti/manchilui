@@ -5,6 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://manchilui.com"),
   title: { default: "Manchilui Training Institute", template: "%s · Manchilui Training Institute" },
   description: "Diploma in Clearing and Forwarding in Eastrise, Chipata, Zambia. Six months of practical training in customs procedure, shipping and cargo handling.",
 };

@@ -4,7 +4,7 @@ import ActionForm from "@/components/ActionForm";
 import GradeBadge from "@/components/GradeBadge";
 import { gradeFor, type GradeBand } from "@/lib/grades";
 import { kwacha, managementPage, mark, MODULE_STATUSES, PAY_METHODS, STATUSES } from "@/lib/admin";
-import { recordPayment, saveStudentMarks, setPassword, updateStudent } from "../../../actions";
+import { editPayment, recordPayment, removePayment, saveStudentMarks, setPassword, updateStudent } from "../../../actions";
 
 type ModRow = { module_code: string; status: string; ca_mark: number | null; exam_mark: number | null; final_mark: number | null; modules: { name: string; sort: number } };
 
@@ -35,6 +35,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
           <p className="eyebrow" style={{ fontSize: ".72rem" }}><Link href="/admin/students">Students</Link> / {s.student_no}</p>
           <h1>{s.full_name}</h1>
         </div>
+        <Link href={`/admin/messages?to=student:${id}`} className="btn btn-navy btn-sm">Message student</Link>
         <div className="bal">
           <span className="k">Fees balance</span>
           <span className="v" style={{ color: bal > 0 ? "var(--warn)" : "var(--ok)" }}>{bal > 0 ? kwacha(bal) : "Fully paid"}</span>
@@ -59,12 +60,32 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
           </section>
 
           <section className="rec">
-            <div className="rec-h"><h2>Payment history</h2><span className="hint" style={{ margin: 0 }}>Total paid {kwacha(totalPaid)}</span></div>
+            <div className="rec-h"><h2>Fees</h2></div>
+            <div className="feesum">
+              <div><div className="k">Total fees</div><div className="v">{kwacha(totalPaid + bal)}</div></div>
+              <div><div className="k">Paid</div><div className="v" style={{ color: "var(--ok)" }}>{kwacha(totalPaid)}</div></div>
+              <div><div className="k">Balance</div><div className="v" style={{ color: bal > 0 ? "var(--warn)" : "var(--ok)" }}>{kwacha(bal)}</div></div>
+            </div>
             <div className="rec-b">
               {(pays ?? []).length === 0 && <p className="muted-row">No payments recorded yet.</p>}
               {(pays ?? []).map((p) => (
-                <div className="row" key={p.id}>
+                <div className="row wrapable" key={p.id}>
                   <div><b>{kwacha(p.amount)}</b><small>{p.paid_on} · {p.method}{p.reference ? ` · ${p.reference}` : ""}</small></div>
+                  <details className="payedit">
+                    <summary>Edit</summary>
+                    <ActionForm action={editPayment.bind(null, p.id)} submit="Save changes" variant="navy">
+                      <div className="fgrid">
+                        <div className="field"><label htmlFor={`ea-${p.id}`}>Amount (K)</label><input id={`ea-${p.id}`} name="amount" inputMode="decimal" defaultValue={String(p.amount)} /></div>
+                        <div className="field"><label htmlFor={`em-${p.id}`}>Paid by</label><select id={`em-${p.id}`} name="method" defaultValue={p.method}>{PAY_METHODS.map((m) => <option key={m}>{m}</option>)}</select></div>
+                        <div className="field"><label htmlFor={`er-${p.id}`}>Receipt / reference</label><input id={`er-${p.id}`} name="reference" defaultValue={p.reference ?? ""} /></div>
+                        <div className="field"><label htmlFor={`ed-${p.id}`}>Date</label><input id={`ed-${p.id}`} name="paid_on" type="date" defaultValue={p.paid_on} /></div>
+                      </div>
+                      <p className="hint">The balance adjusts automatically.</p>
+                    </ActionForm>
+                    <form action={removePayment.bind(null, p.id)} style={{ marginTop: 8 }}>
+                      <button className="del" type="submit">Remove this payment (adds {kwacha(p.amount)} back to the balance)</button>
+                    </form>
+                  </details>
                 </div>
               ))}
             </div>

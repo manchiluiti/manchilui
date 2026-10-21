@@ -416,3 +416,29 @@ a.fcard:hover .more { transform: translateX(8px); }
 .scale-row label { display: flex; gap: 6px; align-items: center; font-size: .9rem; color: var(--navy); }
 .scale-head { font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-2); }
 @media (max-width: 480px) { .scale-row { grid-template-columns: 60px 70px 1fr; } .scale-row label { grid-column: 1 / -1; } .scale-head span:last-child { display: none; } }
+
+/* messages */
+.msg { border-bottom: 1px solid #F3F4F6; padding-block: 12px; }
+.msg:last-child { border-bottom: 0; }
+.msg summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; cursor: pointer; list-style: none; }
+.msg summary::-webkit-details-marker { display: none; }
+.msg summary b { color: var(--navy); display: block; }
+.msg summary small { color: var(--muted); }
+.msg[open] summary b { color: var(--orange); }
+.msg .del { margin-top: 8px; }
+.msgcard { padding: 16px 0; border-bottom: 1px solid #F3F4F6; }
+.msgcard:last-child { border-bottom: 0; }
+.msgcard .msgtop { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.msgcard b { color: var(--navy); font-size: 1.02rem; }
+.msgcard small { color: var(--muted); display: block; }
+.msgcard.unread { background: var(--peach); margin-inline: -24px; padding-inline: 24px; border-left: 4px solid var(--orange); }
+.feesum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 18px 24px 4px; }
+.feesum > div { background: var(--bg-soft); border-radius: 14px; padding: 12px 14px; }
+.feesum .k { font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-2); }
+.feesum .v { font-size: 1.15rem; font-weight: 800; color: var(--navy); font-variant-numeric: tabular-nums; }
+@media (max-width: 480px) { .feesum { grid-template-columns: 1fr; } }
+.payedit summary { cursor: pointer; color: var(--orange); font-weight: 600; font-size: .85rem; list-style: none; }
+.payedit summary::-webkit-details-marker { display: none; }
+.payedit[open] { flex-basis: 100%; }
+.payedit .aform { margin-top: 12px; background: var(--bg-soft); border-radius: 14px; padding: 16px; }
+.row.wrapable { flex-wrap: wrap; }

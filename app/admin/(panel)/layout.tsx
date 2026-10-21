@@ -27,6 +27,16 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   const { count } = staff.isManagement
     ? await staff.supabase.from("enquiries").select("id", { count: "exact", head: true }).eq("handled", false)
     : { count: 0 };
+  let unread = 0;
+  if (staff.isLecturer) {
+    const { data: mine } = await staff.supabase.from("messages").select("id")
+      .or(`and(audience.eq.staff,staff_id.eq.${staff.user.id}),audience.eq.all_lecturers`);
+    const ids = (mine ?? []).map((m) => m.id);
+    if (ids.length) {
+      const { data: reads } = await staff.supabase.from("message_reads").select("message_id").eq("user_id", staff.user.id).in("message_id", ids);
+      unread = ids.length - (reads ?? []).length;
+    }
+  }
   const role = staff.isManagement && staff.isLecturer ? "Management · Lecturer" : staff.isManagement ? "Management" : "Lecturer";
 
   return (
@@ -40,7 +50,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
             <form action={staffSignOut}><button className="btn btn-orange btn-sm">Sign out</button></form>
           </div>
         </div>
-        <div className="wrap"><AdminNav isManagement={staff.isManagement} isLecturer={staff.isLecturer} newEnquiries={count ?? 0} /></div>
+        <div className="wrap"><AdminNav isManagement={staff.isManagement} isLecturer={staff.isLecturer} newEnquiries={count ?? 0} unread={unread} /></div>
       </header>
       <main className="wrap amain">{children}</main>
     </div>

@@ -426,3 +426,70 @@ export async function saveGradeScale(_: FormState, fd: FormData): Promise<FormSt
     return fail(e);
   }
 }
+
+/* =================== Payment corrections (management) =================== */
+
+export async function editPayment(paymentId: string, _: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const amount = money(str(fd, "amount"));
+    const method = str(fd, "method");
+    if (!(amount > 0)) return { error: "Enter an amount greater than zero." };
+    if (!PAY_METHODS.includes(method as (typeof PAY_METHODS)[number])) return { error: "Choose how it was paid." };
+    const { data, error } = await supabase.rpc("update_payment", {
+      p_id: paymentId, p_amount: amount, p_method: method, p_reference: str(fd, "reference"), p_paid_on: str(fd, "paid_on") || null,
+    });
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: `Payment updated. Balance is now K ${Number(data).toLocaleString("en-ZM", { minimumFractionDigits: 2 })}` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function removePayment(paymentId: string) {
+  const { supabase } = await requireManagement();
+  await supabase.rpc("delete_payment", { p_id: paymentId });
+  refresh();
+}
+
+/* =================== Messages =================== */
+
+export async function sendMessage(_: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase, user } = await requireManagement();
+    const to = str(fd, "to"); // "student:<id>" | "staff:<user_id>" | "all_lecturers"
+    const subject = str(fd, "subject");
+    const body = str(fd, "body");
+    if (!to) return { error: "Choose who the message is for." };
+    if (!subject) return { error: "Add a subject." };
+    if (!body) return { error: "Write the message." };
+    if (body.length > 4000) return { error: "Message is too long. Keep it under 4,000 characters." };
+
+    let row: Record<string, string> = { sender_id: user.id, subject, body };
+    let label = "all lecturers";
+    if (to === "all_lecturers") {
+      row = { ...row, audience: "all_lecturers" };
+    } else if (to.startsWith("student:")) {
+      row = { ...row, audience: "student", student_id: to.slice(8) };
+      label = "the student";
+    } else if (to.startsWith("staff:")) {
+      row = { ...row, audience: "staff", staff_id: to.slice(6) };
+      label = "the staff member";
+    } else {
+      return { error: "Choose who the message is for." };
+    }
+    const { error } = await supabase.from("messages").insert(row);
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: `Sent to ${label}. They'll see it next time they sign in.` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function deleteMessage(id: string) {
+  const { supabase } = await requireManagement();
+  await supabase.from("messages").delete().eq("id", id);
+  refresh();
+}

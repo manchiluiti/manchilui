@@ -39,14 +39,15 @@ export default async function Portal() {
   }
 
   const since = new Date(Date.now() - 2 * 3600e3).toISOString();
-  const [{ data: acc }, { data: mods }, { data: ann }, { data: pays }, { data: classes }, { data: notes }, { data: scaleRows }] = await Promise.all([
+  const [{ data: acc }, { data: mods }, { data: ann }, { data: pays }, { data: classes }, { data: notes }, { data: scaleRows }, { data: msgs }] = await Promise.all([
     supabase.from("student_accounts").select("fees_balance,remark").eq("student_id", student.id).maybeSingle(),
     supabase.from("student_modules").select("module_code,status,ca_mark,exam_mark,final_mark,modules(name,sort)").eq("student_id", student.id),
     supabase.from("announcements").select("id,title,body,posted_on,module_code").order("posted_on", { ascending: false }).order("created_at", { ascending: false }).limit(8),
-    supabase.from("payments").select("id,amount,method,paid_on").eq("student_id", student.id).order("paid_on", { ascending: false }).limit(10),
+    supabase.from("payments").select("id,amount,method,reference,paid_on").eq("student_id", student.id).order("paid_on", { ascending: false }),
     supabase.from("classes").select("id,module_code,title,starts_at,duration_min,meeting_url,details").gte("starts_at", since).order("starts_at").limit(8),
     supabase.from("notes").select("id,module_code,title,file_path,file_name,created_at").order("created_at", { ascending: false }),
     supabase.from("grade_scale").select("letter,min_mark,remark,is_pass").order("min_mark", { ascending: false }),
+    supabase.from("messages").select("id,subject,body,created_at").eq("audience", "student").eq("student_id", student.id).order("created_at", { ascending: false }).limit(30),
   ]);
   const scale = (scaleRows ?? []) as GradeBand[];
 
@@ -54,6 +55,18 @@ export default async function Portal() {
   const done = modules.filter((m) => m.status === "Completed").length;
   const bal = Number(acc?.fees_balance ?? 0);
   const owing = bal > 0;
+  const paid = (pays ?? []).reduce((t, p) => t + Number(p.amount), 0);
+
+  // Messages: highlight unread ones, then mark them read (opening the portal counts as reading).
+  const msgIds = (msgs ?? []).map((m) => m.id);
+  const { data: reads } = msgIds.length
+    ? await supabase.from("message_reads").select("message_id").eq("user_id", user.id).in("message_id", msgIds)
+    : { data: [] as { message_id: string }[] };
+  const readSet = new Set((reads ?? []).map((r) => r.message_id));
+  const unread = msgIds.filter((id) => !readSet.has(id));
+  if (unread.length) {
+    await supabase.from("message_reads").upsert(unread.map((message_id) => ({ message_id, user_id: user.id })), { onConflict: "message_id,user_id", ignoreDuplicates: true });
+  }
   const modName = (c: string) => modules.find((m) => m.module_code === c)?.modules.name ?? c;
 
   const urls = new Map<string, string>();
@@ -143,6 +156,20 @@ export default async function Portal() {
 
         <div style={{ display: "grid", gap: 24, alignContent: "start" }}>
           <div className="rec">
+            <div className="rec-h"><h2>Messages</h2>{unread.length > 0 && <span className="pill warn">{unread.length} new</span>}</div>
+            <div className="rec-b">
+              {(msgs ?? []).length === 0 && <p className="muted-row">No messages from the office.</p>}
+              {(msgs ?? []).map((m) => (
+                <div className={`msgcard ${readSet.has(m.id) ? "" : "unread"}`} key={m.id}>
+                  <b>{m.subject}</b>
+                  <small>From the office · {when(m.created_at)}</small>
+                  <p className="abody">{m.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rec">
             <div className="rec-h"><h2>Upcoming classes</h2></div>
             <div className="rec-b">
               {(classes ?? []).length === 0 && <p className="muted-row">No classes scheduled right now.</p>}
@@ -161,14 +188,20 @@ export default async function Portal() {
           </div>
 
           <div className="rec">
-            <div className="rec-h"><h2>Payments</h2></div>
+            <div className="rec-h"><h2>Fees and payments</h2></div>
+            <div className="feesum">
+              <div><div className="k">Total fees</div><div className="v">{kwacha(paid + bal)}</div></div>
+              <div><div className="k">Paid</div><div className="v" style={{ color: "var(--ok)" }}>{kwacha(paid)}</div></div>
+              <div><div className="k">Balance</div><div className="v" style={{ color: owing ? "var(--warn)" : "var(--ok)" }}>{owing ? kwacha(bal) : "K 0.00"}</div></div>
+            </div>
             <div className="rec-b">
               {(pays ?? []).length === 0 && <p className="muted-row">No payments recorded yet.</p>}
               {(pays ?? []).map((p) => (
                 <div className="row" key={p.id}>
-                  <div><b>{kwacha(p.amount)}</b><small>{p.paid_on} · {p.method}</small></div>
+                  <div><b>{kwacha(p.amount)}</b><small>{p.paid_on} · {p.method}{p.reference ? ` · Ref ${p.reference}` : ""}</small></div>
                 </div>
               ))}
+              {(pays ?? []).length > 0 && <p className="hint" style={{ padding: "8px 0 12px" }}>If a payment is missing, bring your receipt to the office.</p>}
             </div>
           </div>
 

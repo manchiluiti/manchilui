@@ -11,7 +11,10 @@ const TABS: Tab[] = [
   { href: "/admin/payroll", label: "Payroll", mgmt: true },
   { href: "/admin/messages", label: "Messages", mgmt: true },
   { href: "/admin/announcements", label: "Announcements", mgmt: true },
+  { href: "/admin/applications", label: "Applications", mgmt: true },
   { href: "/admin/enquiries", label: "Enquiries", mgmt: true },
+  { href: "/admin/activity", label: "Activity", mgmt: true },
+  { href: "/admin/settings", label: "Settings", mgmt: true },
   { href: "/admin/inbox", label: "Inbox", lect: true },
   { href: "/admin/pay", label: "My pay", all: true },
 ];

@@ -42,7 +42,10 @@ export default async function Payslip({ params }: { params: Promise<{ id: string
           <tbody>
             <tr><td>Basic salary</td><td className="num">{kwacha(p.basic)}</td></tr>
             <tr><td>Allowances</td><td className="num">{kwacha(p.allowances)}</td></tr>
-            <tr><td>Deductions</td><td className="num">− {kwacha(p.deductions)}</td></tr>
+            <tr><td>NAPSA</td><td className="num">− {kwacha(p.napsa)}</td></tr>
+            <tr><td>NHIMA</td><td className="num">− {kwacha(p.nhima)}</td></tr>
+            <tr><td>PAYE</td><td className="num">− {kwacha(p.paye)}</td></tr>
+            <tr><td>Other deductions</td><td className="num">− {kwacha(p.deductions)}</td></tr>
             <tr className="net"><td>Net pay</td><td className="num">{kwacha(p.net_pay)}</td></tr>
           </tbody>
         </table>

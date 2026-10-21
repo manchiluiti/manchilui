@@ -468,3 +468,20 @@ a.fcard:hover .more { transform: translateX(8px); }
   .amain { padding: 0 !important; }
   .payslip { border: 0; padding: 0; }
 }
+.subhead { font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; color: var(--orange); margin-top: 6px; }
+.sigs { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 24px; }
+.sigs span { display: block; border-bottom: 1px solid var(--navy); height: 40px; }
+.sigs small { color: var(--muted); }
+.inline-form { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.inline-form .err, .inline-form .ok-msg { font-size: .85rem; padding: 8px 12px; }
+.docs { display: grid; gap: 12px; background: var(--bg-soft); border-radius: 14px; padding: 16px; }
+.docs input[type=file] { padding: 10px; background: #fff; }
+.stages { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.stages a { padding: 8px 14px; border-radius: 999px; background: #fff; border: 1px solid var(--border); color: var(--navy); font-weight: 600; font-size: .9rem; }
+.stages a span { color: var(--muted-2); margin-left: 4px; }
+.stages a.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.stages a.on span { color: var(--on-navy); }
+.letter { line-height: 1.75; color: var(--text); }
+.letter p { color: var(--text); }
+.letter-title { font-size: 1.2rem; text-decoration: underline; text-underline-offset: 4px; }
+.letter .ps-table .num { text-align: right; }

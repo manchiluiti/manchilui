@@ -6,6 +6,7 @@ import {
 } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { STUDENT_EMAIL_DOMAIN, studentIdToEmail } from "@/lib/site";
+import { monthLabel, normalizePhone, sendSms, templates } from "@/lib/sms";
 
 export type FormState = { ok?: string; error?: string } | null;
 
@@ -508,7 +509,7 @@ export async function saveStaffPay(userId: string, _: FormState, fd: FormData): 
     if (Number.isNaN(basic_salary) || basic_salary < 0) return { error: "Basic salary must be a number." };
     if (!PAY_TO_METHODS.includes(pay_method as never)) return { error: "Choose how they are paid." };
     const { error } = await supabase.from("staff_pay").upsert({
-      user_id: userId, basic_salary, pay_method, pay_to: str(fd, "pay_to") || null, updated_at: new Date().toISOString(),
+      user_id: userId, basic_salary, pay_method, pay_to: str(fd, "pay_to") || null, phone: str(fd, "phone") || null, updated_at: new Date().toISOString(),
     });
     if (error) return { error: error.message };
     refresh();
@@ -562,6 +563,7 @@ export async function markPayslipPaid(id: string, _: FormState, fd: FormData): P
       paid_at: date ? `${date}T12:00:00+02:00` : null,
     }).eq("id", id);
     if (error) return { error: friendlyPayErr(error.message) };
+    await salaryText(supabase, id);
     refresh();
     return { ok: "Marked as paid. They can see it under My pay now." };
   } catch (e) {
@@ -587,6 +589,7 @@ export async function markAllPaid(runId: string, _: FormState, fd: FormData): Pr
       .gt("net_pay", 0)
       .select("id");
     if (error) return { error: friendlyPayErr(error.message) };
+    for (const p of data ?? []) await salaryText(supabase, p.id);
     refresh();
     return { ok: `${data?.length ?? 0} payslip${data?.length === 1 ? "" : "s"} marked as paid.` };
   } catch (e) {
@@ -601,4 +604,223 @@ export async function deletePayrollRun(runId: string) {
   await supabase.from("payroll_runs").delete().eq("id", runId);
   refresh();
   redirect("/admin/payroll");
+}
+
+/* =================== SMS (management) =================== */
+
+
+type Sb = Awaited<ReturnType<typeof createClient>>;
+
+async function logSms(sb: Sb, row: Record<string, unknown>) {
+  await sb.from("sms_log").insert(row);
+}
+
+/** (a) Balance reminder for one owing student. At most one per student per 24 hours. */
+async function remindStudent(sb: Sb, studentId: string): Promise<{ ok: boolean; msg: string }> {
+  const { data: s } = await sb.from("students").select("id,full_name,student_no,status,student_accounts(fees_balance,phone)").eq("id", studentId).maybeSingle();
+  if (!s) return { ok: false, msg: "Student not found." };
+  const acc = s.student_accounts as unknown as { fees_balance: number; phone: string | null } | null;
+  const bal = Number(acc?.fees_balance ?? 0);
+  if (bal <= 0) return { ok: false, msg: `${s.full_name} doesn't owe anything.` };
+  const to = normalizePhone(acc?.phone);
+  if (!to) return { ok: false, msg: `${s.full_name} has no valid phone number. Add one under Details.` };
+  const since = new Date(Date.now() - 24 * 3600e3).toISOString();
+  const { count } = await sb.from("sms_log").select("id", { count: "exact", head: true })
+    .eq("student_id", studentId).eq("kind", "balance_reminder").eq("status", "sent").gte("created_at", since);
+  if ((count ?? 0) > 0) return { ok: false, msg: `${s.full_name} was already reminded in the last 24 hours.` };
+  const message = templates.balanceReminder(s.full_name, bal);
+  const r = await sendSms(to, message);
+  await logSms(sb, { kind: "balance_reminder", student_id: studentId, to_phone: to, message, status: r.ok ? "sent" : "failed", detail: r.detail, cost: r.cost ?? null });
+  return { ok: r.ok, msg: r.ok ? `Reminder sent to ${s.full_name} (${to}).` : `Not sent: ${r.detail}` };
+}
+
+export async function sendBalanceReminder(studentId: string, _: FormState): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const { data: st } = await supabase.from("app_settings").select("sms_enabled").maybeSingle();
+    if (!st?.sms_enabled) return { error: "SMS is switched off. Turn it on in Admin > Settings." };
+    const r = await remindStudent(supabase, studentId);
+    refresh();
+    return r.ok ? { ok: r.msg } : { error: r.msg };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function remindAllOwing(_: FormState): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const { data: st } = await supabase.from("app_settings").select("sms_enabled").maybeSingle();
+    if (!st?.sms_enabled) return { error: "SMS is switched off. Turn it on in Admin > Settings." };
+    const { data: owing } = await supabase.from("student_accounts").select("student_id,fees_balance,students!inner(status)").gt("fees_balance", 0).in("students.status", ["Registered", "Pending"]);
+    let sent = 0, skipped = 0;
+    for (const o of (owing ?? []).slice(0, 300)) {
+      const r = await remindStudent(supabase, o.student_id);
+      if (r.ok) sent++; else skipped++;
+    }
+    refresh();
+    return { ok: `${sent} reminder${sent === 1 ? "" : "s"} sent${skipped ? `, ${skipped} skipped (no phone, already reminded today, or failed). See the SMS log.` : "."}` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+/** (b) Salary paid text. Called after a payslip is marked paid. Once per payslip. */
+async function salaryText(sb: Sb, payslipId: string) {
+  const { data: st } = await sb.from("app_settings").select("sms_enabled").maybeSingle();
+  if (!st?.sms_enabled) return;
+  const { data: p } = await sb.from("payslips").select("id,staff_id,period,net_pay,method,status").eq("id", payslipId).maybeSingle();
+  if (!p || p.status !== "paid" || Number(p.net_pay) <= 0) return;
+  const { count } = await sb.from("sms_log").select("id", { count: "exact", head: true }).eq("payslip_id", payslipId).eq("kind", "salary_paid").eq("status", "sent");
+  if ((count ?? 0) > 0) return;
+  const [{ data: person }, { data: pay }] = await Promise.all([
+    sb.from("staff").select("full_name").eq("user_id", p.staff_id).maybeSingle(),
+    sb.from("staff_pay").select("phone").eq("user_id", p.staff_id).maybeSingle(),
+  ]);
+  const to = normalizePhone(pay?.phone);
+  if (!to || !person) return;
+  const message = templates.salaryPaid(person.full_name, Number(p.net_pay), monthLabel(p.period), p.method ?? "Bank");
+  const r = await sendSms(to, message);
+  await logSms(sb, { kind: "salary_paid", staff_id: p.staff_id, payslip_id: p.id, period: p.period, to_phone: to, message, status: r.ok ? "sent" : "failed", detail: r.detail, cost: r.cost ?? null });
+}
+
+export async function sendTestSms(_: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const to = normalizePhone(str(fd, "phone"));
+    if (!to) return { error: "Enter a valid Zambian mobile number, e.g. 0977 123 456." };
+    const message = "Manchilui Training Institute: test message from the admin portal. SMS is working.";
+    const r = await sendSms(to, message);
+    await logSms(supabase, { kind: "test", to_phone: to, message, status: r.ok ? "sent" : "failed", detail: r.detail, cost: r.cost ?? null });
+    refresh();
+    return r.ok ? { ok: `Test SMS sent to ${to}.` } : { error: `Not sent: ${r.detail}` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+/* =================== Settings (management) =================== */
+
+export async function saveSettings(_: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const reminder_day = Number(str(fd, "reminder_day"));
+    const rates = ["napsa_rate", "nhima_rate", "paye_rate"].map((r) => Number(str(fd, r) || "0"));
+    if (!(reminder_day >= 1 && reminder_day <= 28)) return { error: "Reminder day must be between 1 and 28." };
+    if (rates.some((r) => !(r >= 0 && r <= 100))) return { error: "Rates must be between 0 and 100%." };
+    const { error } = await supabase.from("app_settings").update({
+      sms_enabled: fd.get("sms_enabled") === "on",
+      reminder_day,
+      napsa_rate: rates[0], nhima_rate: rates[1], paye_rate: rates[2],
+      results_statement_enabled: fd.get("results_statement_enabled") === "on",
+      updated_at: new Date().toISOString(),
+    }).eq("id", true);
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: "Settings saved. New rates apply to payslips that haven't been paid yet." };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function addCalendarPeriod(_: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const label = str(fd, "label");
+    const starts_on = str(fd, "starts_on");
+    const ends_on = str(fd, "ends_on");
+    if (label.length < 2) return { error: "Give the period a name, e.g. July – December 2026 session." };
+    if (!starts_on || !ends_on) return { error: "Choose the start and end dates." };
+    if (ends_on < starts_on) return { error: "The end date is before the start date." };
+    const { error } = await supabase.from("fee_calendar").insert({ label, starts_on, ends_on });
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: "Added to the fee calendar." };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function removeCalendarPeriod(id: string) {
+  const { supabase } = await requireManagement();
+  await supabase.from("fee_calendar").delete().eq("id", id);
+  refresh();
+}
+
+/* =================== Applications (management) =================== */
+
+export async function acceptApplication(id: string, _: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase, user } = await requireManagement();
+    const fees = money(str(fd, "fees_offered"));
+    const start_date = str(fd, "start_date");
+    if (!(fees >= 0)) return { error: "Enter the total fees, for example 6000." };
+    if (!start_date) return { error: "Choose the start date." };
+    const { error } = await supabase.from("applications").update({
+      status: "Accepted", fees_offered: fees, start_date, decision_note: str(fd, "decision_note") || null,
+      reviewed_by: user.id, reviewed_at: new Date().toISOString(),
+    }).eq("id", id);
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: "Accepted. Print the acceptance letter and call the applicant." };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function rejectApplication(id: string, _: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase, user } = await requireManagement();
+    const { error } = await supabase.from("applications").update({
+      status: "Rejected", decision_note: str(fd, "decision_note") || null, reviewed_by: user.id, reviewed_at: new Date().toISOString(),
+    }).eq("id", id);
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: "Marked as not accepted." };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function reopenApplication(id: string) {
+  const { supabase } = await requireManagement();
+  await supabase.from("applications").update({ status: "Applied" }).eq("id", id).neq("status", "Registered");
+  refresh();
+}
+
+/** Turns an accepted applicant into a student with a portal login. */
+export async function registerApplicant(id: string, _: FormState, fd: FormData): Promise<FormState> {
+  let newId = "";
+  try {
+    const { supabase } = await requireManagement();
+    const { data: app } = await supabase.from("applications").select("*").eq("id", id).maybeSingle();
+    if (!app) return { error: "Application not found." };
+    if (app.status !== "Accepted") return { error: "Accept the application before registering." };
+    const student_no = str(fd, "student_no").toUpperCase();
+    const session = str(fd, "session");
+    const password = String(fd.get("password") ?? "");
+    if (!/^MTI-\d{4}-\d{3}$/.test(student_no)) return { error: "Student ID must look like MTI-2026-001." };
+    if (!session) return { error: "Enter the session, for example January – June 2027." };
+    if (password.length < 6) return { error: "Password must be at least 6 characters." };
+    const auth = adminAuth();
+
+    const { data: row, error } = await supabase.from("students").insert({ student_no, full_name: app.full_name, session }).select("id").single();
+    if (error) return { error: error.code === "23505" ? `${student_no} is already taken. Use the next number.` : error.message };
+    const { error: accErr } = await supabase.from("student_accounts").upsert({ student_id: row.id, fees_balance: Number(app.fees_offered ?? 0), phone: app.phone });
+    if (accErr) {
+      await supabase.from("students").delete().eq("id", row.id);
+      return { error: accErr.message };
+    }
+    const { error: authErr } = await auth.createUser({ email: studentIdToEmail(student_no), password, email_confirm: true });
+    if (authErr) {
+      await supabase.from("students").delete().eq("id", row.id);
+      return { error: `The login couldn't be created: ${authErr.message}` };
+    }
+    await supabase.from("applications").update({ status: "Registered", student_id: row.id }).eq("id", id);
+    newId = row.id;
+  } catch (e) {
+    return fail(e);
+  }
+  refresh();
+  redirect(`/admin/students/${newId}?created=1`);
 }

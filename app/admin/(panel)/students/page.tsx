@@ -1,5 +1,7 @@
 import Link from "next/link";
+import ActionForm from "@/components/ActionForm";
 import { kwacha, managementPage, STATUSES } from "@/lib/admin";
+import { remindAllOwing } from "../../actions";
 
 const pillFor = (s: string) => (s === "Registered" || s === "Completed" ? "ok" : s === "Suspended" || s === "Withdrawn" ? "warn" : "wait");
 
@@ -18,6 +20,15 @@ export default async function Students({ searchParams }: { searchParams: Promise
         <div><p className="eyebrow" style={{ fontSize: ".72rem" }}>Students</p><h1>{data?.length ?? 0} student{data?.length === 1 ? "" : "s"}</h1></div>
         <Link href="/admin/students/new" className="btn btn-orange btn-sm">+ Add student</Link>
       </div>
+
+      <details className="rec" style={{ marginBottom: 16 }}>
+        <summary className="rec-h" style={{ cursor: "pointer" }}><h2 style={{ fontSize: "1rem" }}>Send balance reminders to all owing students</h2><span className="copy">Open</span></summary>
+        <div className="rec-b" style={{ paddingBlock: 16 }}>
+          <ActionForm action={remindAllOwing} submit="Send reminders now" variant="navy">
+            <p className="hint">Texts every registered student with a balance and a phone number. Anyone already reminded in the last 24 hours is skipped. Each text costs SMS credit.</p>
+          </ActionForm>
+        </div>
+      </details>
 
       <form className="filters" method="get">
         <input name="q" defaultValue={q} placeholder="Search name or ID" aria-label="Search students" />

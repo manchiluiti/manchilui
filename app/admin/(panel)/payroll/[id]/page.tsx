@@ -56,6 +56,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
                   <div className="kv"><span className="k">Basic</span><span className="v">{kwacha(r.basic)}</span></div>
                   <div className="kv"><span className="k">Allowances</span><span className="v">{kwacha(r.allowances)}</span></div>
                   <div className="kv"><span className="k">Deductions</span><span className="v">{kwacha(r.deductions)}</span></div>
+                  <div className="kv"><span className="k">NAPSA / NHIMA / PAYE</span><span className="v">{kwacha(r.napsa)} / {kwacha(r.nhima)} / {kwacha(r.paye)}</span></div>
                   <div className="kv"><span className="k">Paid</span><span className="v">{r.paid_at ? day(r.paid_at) : ""} · {r.method}{r.reference ? ` · ${r.reference}` : ""}</span></div>
                   {r.note && <p className="hint">{r.note}</p>}
                   <form action={markPayslipUnpaid.bind(null, r.id)}><button className="del" type="submit">Mark unpaid (to correct a mistake)</button></form>
@@ -66,10 +67,11 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
                     <div className="fgrid">
                       <div className="field"><label htmlFor={`b-${r.id}`}>Basic (K)</label><input id={`b-${r.id}`} name="basic" inputMode="decimal" defaultValue={String(r.basic)} /></div>
                       <div className="field"><label htmlFor={`a-${r.id}`}>Allowances (K)</label><input id={`a-${r.id}`} name="allowances" inputMode="decimal" defaultValue={String(r.allowances)} /></div>
-                      <div className="field"><label htmlFor={`d-${r.id}`}>Deductions (K)</label><input id={`d-${r.id}`} name="deductions" inputMode="decimal" defaultValue={String(r.deductions)} /></div>
+                      <div className="field"><label htmlFor={`d-${r.id}`}>Other deductions (K)</label><input id={`d-${r.id}`} name="deductions" inputMode="decimal" defaultValue={String(r.deductions)} /></div>
                       <div className="field"><label htmlFor={`m-${r.id}`}>Paid by</label>
                         <select id={`m-${r.id}`} name="method" defaultValue={r.method ?? "Bank"}><option>Bank</option><option>Mobile money</option><option>Cash</option></select>
                       </div>
+                      <div className="field full hint">Statutory (auto): NAPSA {kwacha(r.napsa)} · NHIMA {kwacha(r.nhima)} · PAYE {kwacha(r.paye)}</div>
                       <div className="field full"><label htmlFor={`n-${r.id}`}>Note on payslip (optional)</label><input id={`n-${r.id}`} name="note" defaultValue={r.note ?? ""} placeholder="e.g. Transport allowance; NAPSA deducted" /></div>
                     </div>
                   </ActionForm>

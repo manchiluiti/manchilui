@@ -4,7 +4,7 @@ import ActionForm from "@/components/ActionForm";
 import GradeBadge from "@/components/GradeBadge";
 import { gradeFor, type GradeBand } from "@/lib/grades";
 import { kwacha, managementPage, mark, MODULE_STATUSES, PAY_METHODS, STATUSES } from "@/lib/admin";
-import { editPayment, recordPayment, removePayment, saveStudentMarks, setPassword, updateStudent } from "../../../actions";
+import { editPayment, recordPayment, removePayment, saveStudentMarks, sendBalanceReminder, setPassword, updateStudent } from "../../../actions";
 
 type ModRow = { module_code: string; status: string; ca_mark: number | null; exam_mark: number | null; final_mark: number | null; modules: { name: string; sort: number } };
 
@@ -17,7 +17,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
     supabase.from("students").select("*").eq("id", id).maybeSingle(),
     supabase.from("student_accounts").select("fees_balance,phone,remark").eq("student_id", id).maybeSingle(),
     supabase.from("student_modules").select("module_code,status,ca_mark,exam_mark,final_mark,modules(name,sort)").eq("student_id", id),
-    supabase.from("payments").select("id,amount,method,reference,paid_on").eq("student_id", id).order("paid_on", { ascending: false }).order("created_at", { ascending: false }),
+    supabase.from("payments").select("id,receipt_no,amount,method,reference,paid_on").eq("student_id", id).order("paid_on", { ascending: false }).order("created_at", { ascending: false }),
     supabase.from("grade_scale").select("letter,min_mark,remark,is_pass"),
   ]);
   const scale = (scaleRows ?? []) as GradeBand[];
@@ -35,7 +35,10 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
           <p className="eyebrow" style={{ fontSize: ".72rem" }}><Link href="/admin/students">Students</Link> / {s.student_no}</p>
           <h1>{s.full_name}</h1>
         </div>
-        <Link href={`/admin/messages?to=student:${id}`} className="btn btn-navy btn-sm">Message student</Link>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Link href={`/admin/messages?to=student:${id}`} className="btn btn-navy btn-sm">Message student</Link>
+          <Link href={`/admin/students/${id}/statement`} className="btn btn-outline btn-sm">Statement of results</Link>
+        </div>
         <div className="bal">
           <span className="k">Fees balance</span>
           <span className="v" style={{ color: bal > 0 ? "var(--warn)" : "var(--ok)" }}>{bal > 0 ? kwacha(bal) : "Fully paid"}</span>
@@ -60,7 +63,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
           </section>
 
           <section className="rec">
-            <div className="rec-h"><h2>Fees</h2></div>
+            <div className="rec-h"><h2>Fees</h2>{bal > 0 && <ActionForm action={sendBalanceReminder.bind(null, id)} submit="Send balance reminder SMS" variant="navy" className="inline-form"><span /></ActionForm>}</div>
             <div className="feesum">
               <div><div className="k">Total fees</div><div className="v">{kwacha(totalPaid + bal)}</div></div>
               <div><div className="k">Paid</div><div className="v" style={{ color: "var(--ok)" }}>{kwacha(totalPaid)}</div></div>
@@ -71,6 +74,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
               {(pays ?? []).map((p) => (
                 <div className="row wrapable" key={p.id}>
                   <div><b>{kwacha(p.amount)}</b><small>{p.paid_on} · {p.method}{p.reference ? ` · ${p.reference}` : ""}</small></div>
+                  <Link className="copy" href={`/admin/receipt/${p.id}`}>Receipt</Link>
                   <details className="payedit">
                     <summary>Edit</summary>
                     <ActionForm action={editPayment.bind(null, p.id)} submit="Save changes" variant="navy">

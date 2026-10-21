@@ -9,7 +9,7 @@ export default async function PayrollPage() {
   const { supabase } = await managementPage();
   const [{ data: staff }, { data: pay }, { data: runs }, { data: slips }] = await Promise.all([
     supabase.from("staff").select("user_id,full_name,is_management,is_lecturer").order("full_name"),
-    supabase.from("staff_pay").select("user_id,basic_salary,pay_method,pay_to"),
+    supabase.from("staff_pay").select("user_id,basic_salary,pay_method,pay_to,phone"),
     supabase.from("payroll_runs").select("id,period").order("period", { ascending: false }),
     supabase.from("payslips").select("run_id,net_pay,status"),
   ]);
@@ -79,7 +79,8 @@ export default async function PayrollPage() {
                         <div className="field"><label htmlFor={`pm-${s.user_id}`}>Paid by</label>
                           <select id={`pm-${s.user_id}`} name="pay_method" defaultValue={p?.pay_method ?? "Bank"}><option>Bank</option><option>Mobile money</option><option>Cash</option></select>
                         </div>
-                        <div className="field full"><label htmlFor={`pt-${s.user_id}`}>Paid to (shown on their payslip)</label><input id={`pt-${s.user_id}`} name="pay_to" defaultValue={p?.pay_to ?? ""} placeholder="e.g. Zanaco ****4521 or Airtel ***997" /></div>
+                        <div className="field"><label htmlFor={`ph-${s.user_id}`}>Phone for salary SMS</label><input id={`ph-${s.user_id}`} name="phone" inputMode="tel" defaultValue={p?.phone ?? ""} placeholder="0977 123 456" /></div>
+                        <div className="field"><label htmlFor={`pt-${s.user_id}`}>Paid to (shown on their payslip)</label><input id={`pt-${s.user_id}`} name="pay_to" defaultValue={p?.pay_to ?? ""} placeholder="e.g. Zanaco ****4521 or Airtel ***997" /></div>
                       </div>
                       <p className="hint">Use only the last few digits of an account number.</p>
                     </ActionForm>

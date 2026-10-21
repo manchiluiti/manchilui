@@ -20,7 +20,7 @@ Staff sign in at `/admin` (small "Staff" link in the site footer). Each staff me
 Final mark = CA 40% + Exam 60% (calculated by the database). Students see marks as soon as they are saved; every change records who made it and when.
 
 One-time setup, in order:
-1. Run `supabase/migrations/0002_payments.sql`, `0003_roles.sql`, `0004_grades.sql`, `0005_messages.sql` and `0006_payroll.sql`, in that order, in the SQL Editor. Existing staff become Management.
+1. Run `supabase/migrations/0002_payments.sql`, `0003_roles.sql`, `0004_grades.sql`, `0005_messages.sql`, `0006_payroll.sql` and `0007_operations.sql`, in that order, in the SQL Editor. Existing staff become Management.
 2. In Vercel, set `SUPABASE_SERVICE_ROLE_KEY` (Supabase > Project Settings > API > service_role). Server-only; used to create and reset logins.
 3. First manager only: create the login in Supabase (Authentication > Users > Add user, Auto Confirm), then run
    `insert into staff (user_id, full_name, is_management) select id, 'Full Name', true from auth.users where email = 'their@email.com';`
@@ -35,3 +35,14 @@ One-time setup, in order:
 - **Payment corrections**: on a student's page, open Edit on any payment to change it or remove it; the balance adjusts automatically.
 - **Messages**: Admin > Messages sends a private message to one student, one staff member, or all lecturers, with read receipts. Students read them in the portal; lecturers in Admin > Inbox. For a notice to every student, use Announcements > Students only.
 - **Payroll**: Admin > Payroll. Set each staff member's basic salary once, then each month click Start payroll, adjust allowances/deductions, and mark payslips paid (individually with a reference, or all at once). Staff see paid payslips under My pay and can print them. Paid payslips are locked; mark unpaid to correct one.
+- **Receipts**: each payment on a student's page has a Receipt link (printable, numbered MTI-R00001…). Issued by the office only.
+- **Online applications**: the Admissions page form saves applications with documents. Admin > Applications: review, accept (fees + start date), print the acceptance letter, then Register to create the student and login.
+- **SMS (Africa's Talking)**: only three kinds. (a) Balance reminder button for owing students (one per student per 24 h), (b) automatic text when a salary is marked paid, (c) monthly reminder to owing students on the reminder day, only inside the fee calendar. Switch on and configure in Admin > Settings.
+- **Statutory deductions**: NAPSA, NHIMA and PAYE rates in Admin > Settings (0% for now).
+- **Statement of results**: built but frozen; turn on in Admin > Settings.
+- **Activity**: Admin > Activity lists every change to fees, payments, marks, payroll, staff and settings. It can't be edited.
+
+### Environment variables (Vercel)
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- `AT_USERNAME`, `AT_API_KEY` (Africa's Talking), optional `AT_SENDER_ID` (registered sender name)
+- `CRON_SECRET` (any long random string; Vercel uses it to call the daily job in `vercel.json`, which also keeps the free Supabase project awake)

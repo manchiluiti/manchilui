@@ -22,3 +22,13 @@ export const PAGES: { href: string; label: string }[] = [
 export const STUDENT_EMAIL_DOMAIN = "students.manchilui.com";
 export const studentIdToEmail = (id: string) =>
   `${id.trim().toLowerCase()}@${STUDENT_EMAIL_DOMAIN}`;
+
+/** Manchilui student IDs are 8 digits: year + intake month + number, e.g. 20260647. The older MTI-2026-001 style is still accepted. */
+export const STUDENT_ID_RE = /^(\d{8}|MTI-\d{4}-\d{3})$/;
+export const STUDENT_ID_HINT = "8 digits, e.g. 20260647";
+
+/** Suggests the next ID after the highest 8-digit ID for this year. */
+export function nextStudentId(existing: string[], year = new Date().getFullYear()) {
+  const nums = existing.filter((x) => /^\d{8}$/.test(x) && x.startsWith(String(year))).map(Number);
+  return nums.length ? String(Math.max(...nums) + 1) : `${year}0101`;
+}

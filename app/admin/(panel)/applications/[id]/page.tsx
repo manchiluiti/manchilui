@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ActionForm from "@/components/ActionForm";
 import { kwacha, managementPage } from "@/lib/admin";
+import { nextStudentId } from "@/lib/site";
 import { acceptApplication, registerApplicant, rejectApplication, reopenApplication } from "../../../actions";
 
 type Doc = { path: string; name: string; kind: string };
@@ -20,8 +21,8 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
     (signed ?? []).forEach((s) => s.path && s.signedUrl && urls.set(s.path, s.signedUrl));
   }
   const year = new Date().getFullYear();
-  const { data: last } = await supabase.from("students").select("student_no").like("student_no", `MTI-${year}-%`).order("student_no", { ascending: false }).limit(1);
-  const nextId = `MTI-${year}-${String((last?.[0] ? Number(last[0].student_no.slice(-3)) : 0) + 1).padStart(3, "0")}`;
+  const { data: last } = await supabase.from("students").select("student_no").like("student_no", `${year}%`);
+  const nextId = nextStudentId((last ?? []).map((d) => d.student_no), year);
 
   return (
     <>

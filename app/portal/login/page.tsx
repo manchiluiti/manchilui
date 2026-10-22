@@ -50,7 +50,7 @@ export default function Login() {
           <div style={{ display: "flex", justifyContent: "center" }}><Logo size={84} /></div>
           <h1>Student Portal</h1>
           <div className="sub">{SITE.name}</div>
-          <div className="field"><label htmlFor="l-id">Student ID</label><input id="l-id" name="student_id" placeholder="MTI-2026-XXX" autoComplete="username" autoCapitalize="characters" /></div>
+          <div className="field"><label htmlFor="l-id">Student ID</label><input id="l-id" name="student_id" placeholder="e.g. 20260647" inputMode="numeric" autoComplete="username" autoCapitalize="characters" /></div>
           <div className="field"><label htmlFor="l-pw">Password</label><input id="l-pw" name="password" type="password" autoComplete="current-password" /></div>
           {error && <div className="err" role="alert">{error}</div>}
           <button className="btn btn-orange" type="submit" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>

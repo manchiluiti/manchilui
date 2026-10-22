@@ -5,7 +5,7 @@ import {
   adminAuth, MODULE_STATUSES, PAY_METHODS, requireManagement, requireModuleAccess, requireStaff, STATUSES,
 } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
-import { STUDENT_EMAIL_DOMAIN, studentIdToEmail } from "@/lib/site";
+import { STUDENT_EMAIL_DOMAIN, STUDENT_ID_HINT, STUDENT_ID_RE, studentIdToEmail } from "@/lib/site";
 import { monthLabel, normalizePhone, sendSms, templates } from "@/lib/sms";
 
 export type FormState = { ok?: string; error?: string } | null;
@@ -54,7 +54,7 @@ export async function createStudent(_: FormState, fd: FormData): Promise<FormSta
     const fees_balance = money(str(fd, "fees_balance") || "0");
     const password = String(fd.get("password") ?? "");
 
-    if (!/^MTI-\d{4}-\d{3}$/.test(student_no)) return { error: "Student ID must look like MTI-2026-001." };
+    if (!STUDENT_ID_RE.test(student_no)) return { error: `Student ID must be ${STUDENT_ID_HINT}.` };
     if (full_name.length < 2) return { error: "Enter the student's full name." };
     if (!session) return { error: "Enter the session, for example January – June 2027." };
     if (Number.isNaN(fees_balance)) return { error: "Fees balance must be a number, for example 2500." };
@@ -814,7 +814,7 @@ export async function registerApplicant(id: string, _: FormState, fd: FormData):
     const student_no = str(fd, "student_no").toUpperCase();
     const session = str(fd, "session");
     const password = String(fd.get("password") ?? "");
-    if (!/^MTI-\d{4}-\d{3}$/.test(student_no)) return { error: "Student ID must look like MTI-2026-001." };
+    if (!STUDENT_ID_RE.test(student_no)) return { error: `Student ID must be ${STUDENT_ID_HINT}.` };
     if (!session) return { error: "Enter the session, for example January – June 2027." };
     if (password && password.length < 8) return { error: "Password must be at least 8 characters, or leave it blank to use the student ID." };
     const auth = adminAuth();
@@ -855,7 +855,7 @@ export async function importStudents(rows: ImportRow[]): Promise<ImportResult[]>
     const full_name = (r.full_name ?? "").trim().replace(/\s+/g, " ");
     const session = (r.session ?? "").trim();
     const fees = money(String(r.fees_balance ?? "").trim() || "0");
-    if (!/^MTI-\d{4}-\d{3}$/.test(student_no)) { out.push({ student_no: student_no || "(blank)", ok: false, msg: "ID must look like MTI-2026-001" }); continue; }
+    if (!STUDENT_ID_RE.test(student_no)) { out.push({ student_no: student_no || "(blank)", ok: false, msg: `ID must be ${STUDENT_ID_HINT}` }); continue; }
     if (full_name.length < 2) { out.push({ student_no, ok: false, msg: "Name missing" }); continue; }
     if (!session) { out.push({ student_no, ok: false, msg: "Session missing" }); continue; }
     if (Number.isNaN(fees)) { out.push({ student_no, ok: false, msg: "Fees balance isn't a number" }); continue; }

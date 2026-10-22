@@ -1,14 +1,14 @@
 import Link from "next/link";
 import ActionForm from "@/components/ActionForm";
 import { managementPage } from "@/lib/admin";
+import { nextStudentId } from "@/lib/site";
 import { createStudent } from "../../../actions";
 
 export default async function NewStudent() {
   const { supabase } = await managementPage();
   const year = new Date().getFullYear();
-  const { data } = await supabase.from("students").select("student_no").like("student_no", `MTI-${year}-%`).order("student_no", { ascending: false }).limit(1);
-  const last = data?.[0]?.student_no ? Number(data[0].student_no.slice(-3)) : 0;
-  const nextId = `MTI-${year}-${String(last + 1).padStart(3, "0")}`;
+  const { data } = await supabase.from("students").select("student_no").like("student_no", `${year}%`);
+  const nextId = nextStudentId((data ?? []).map((d) => d.student_no), year);
 
   return (
     <>

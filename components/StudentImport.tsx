@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { importStudents, type ImportResult, type ImportRow } from "@/app/admin/actions";
+import { STUDENT_ID_HINT, STUDENT_ID_RE } from "@/lib/site";
 
 const COLS = ["student_no", "full_name", "session", "phone", "fees_balance"] as const;
 const ALIASES: Record<string, (typeof COLS)[number]> = {
@@ -63,7 +64,7 @@ export default function StudentImport() {
       const o: Record<string, string> = {};
       head.forEach((k, i) => { if (k) o[k] = (r[i] ?? "").trim(); });
       const p: Parsed = { student_no: (o.student_no ?? "").toUpperCase(), full_name: o.full_name ?? "", session: o.session ?? "", phone: o.phone, fees_balance: o.fees_balance };
-      if (!/^MTI-\d{4}-\d{3}$/.test(p.student_no)) p.problem = "ID must look like MTI-2026-001";
+      if (!STUDENT_ID_RE.test(p.student_no)) p.problem = `ID must be ${STUDENT_ID_HINT}`;
       else if (seen.has(p.student_no)) p.problem = "Duplicate ID in file";
       else if (p.full_name.length < 2) p.problem = "Name missing";
       else if (!p.session) p.problem = "Session missing";

@@ -8,7 +8,7 @@ export function normalizePhone(raw: string | null | undefined): string | null {
   if (d.startsWith("00")) d = d.slice(2);
   if (d.startsWith("260")) d = d.slice(3);
   if (d.startsWith("0")) d = d.slice(1);
-  return /^[79]\d{8}$/.test(d) ? `+260${d}` : null;
+  return /^[579]\d{8}$/.test(d) ? `+260${d}` : null;
 }
 
 export const smsConfigured = () => !!(process.env.AT_USERNAME && process.env.AT_API_KEY);

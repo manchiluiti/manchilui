@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
-  adminAuth, MODULE_STATUSES, PAY_METHODS, requireManagement, requireModuleAccess, requireStaff, STATUSES,
+  adminAuth, MODULE_STATUSES, PAY_METHODS, requireManagement, requireModuleAccess, requireStaff, STATUSES, tuitionFee,
 } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { STUDENT_EMAIL_DOMAIN, STUDENT_ID_HINT, STUDENT_ID_RE, studentIdToEmail } from "@/lib/site";
@@ -920,30 +920,46 @@ export async function registerApplicant(id: string, _: FormState, fd: FormData):
 export type ImportRow = { student_no: string; full_name: string; session: string; phone?: string; fees_balance?: string; paid?: string };
 export type ImportResult = { student_no: string; ok: boolean; msg: string };
 
-/** Imports up to 25 students per call. Each gets a login with their ID as the first password. */
-export async function importStudents(rows: ImportRow[]): Promise<ImportResult[]> {
+/** Imports up to 25 students per call. New students get a login with their ID as the first password.
+ *  With updateExisting, students already in the system get their fees updated instead of being skipped.
+ *  When "Amount paid" is blank, paid = tuition fee - balance. */
+export async function importStudents(rows: ImportRow[], updateExisting = false): Promise<ImportResult[]> {
   const { supabase } = await requireManagement();
   const auth = adminAuth();
+  const fee = await tuitionFee(supabase);
   const out: ImportResult[] = [];
   for (const r of rows.slice(0, 25)) {
     const student_no = (r.student_no ?? "").trim().toUpperCase();
     const full_name = (r.full_name ?? "").trim().replace(/\s+/g, " ");
     const session = (r.session ?? "").trim();
     const fees = money(String(r.fees_balance ?? "").trim() || "0");
-    const paidBefore = money(String(r.paid ?? "").trim() || "0");
+    const paidGiven = String(r.paid ?? "").trim();
+    const paidSoFar = paidGiven ? money(paidGiven) : Math.max(0, fee - fees);
     if (!STUDENT_ID_RE.test(student_no)) { out.push({ student_no: student_no || "(blank)", ok: false, msg: `ID must be ${STUDENT_ID_HINT}` }); continue; }
     if (full_name.length < 2) { out.push({ student_no, ok: false, msg: "Name missing" }); continue; }
     if (!session) { out.push({ student_no, ok: false, msg: "Session missing" }); continue; }
-    if (Number.isNaN(fees)) { out.push({ student_no, ok: false, msg: "Fees balance isn't a number" }); continue; }
-    if (Number.isNaN(paidBefore) || paidBefore < 0) { out.push({ student_no, ok: false, msg: "Amount paid isn't a number" }); continue; }
+    if (Number.isNaN(fees) || fees < 0) { out.push({ student_no, ok: false, msg: "Fees balance isn't a number" }); continue; }
+    if (Number.isNaN(paidSoFar) || paidSoFar < 0) { out.push({ student_no, ok: false, msg: "Amount paid isn't a number" }); continue; }
+
+    const { data: existing } = await supabase.from("students").select("id").eq("student_no", student_no).maybeSingle();
+    if (existing) {
+      if (!updateExisting) { out.push({ student_no, ok: false, msg: "Already exists (skipped)" }); continue; }
+      const err = await applyFees(supabase, existing.id, paidSoFar, fees);
+      const phone = (r.phone ?? "").trim();
+      if (!err && phone) {
+        const { data: acc } = await supabase.from("student_accounts").select("phone").eq("student_id", existing.id).maybeSingle();
+        if (!acc?.phone) await supabase.from("student_accounts").update({ phone }).eq("student_id", existing.id);
+      }
+      out.push({ student_no, ok: !err, msg: err ?? `Fees updated: paid K${paidSoFar.toLocaleString("en-ZM")}, balance K${fees.toLocaleString("en-ZM")}` });
+      continue;
+    }
 
     const { data: row, error } = await supabase.from("students").insert({ student_no, full_name, session }).select("id").single();
     if (error) { out.push({ student_no, ok: false, msg: error.code === "23505" ? "Already exists (skipped)" : error.message }); continue; }
-    const { error: accErr } = await supabase.from("student_accounts").upsert({ student_id: row.id, fees_balance: fees, paid_before: paidBefore, phone: (r.phone ?? "").trim() || null });
+    const { error: accErr } = await supabase.from("student_accounts").upsert({ student_id: row.id, fees_balance: fees, paid_before: paidSoFar, phone: (r.phone ?? "").trim() || null });
     if (accErr) { await supabase.from("students").delete().eq("id", row.id); out.push({ student_no, ok: false, msg: accErr.message }); continue; }
     const { error: authErr } = await createStudentLogin(auth, student_no, "");
     if (authErr) {
-      // A login may already exist from an earlier attempt; keep the record and link happens by trigger only on new logins.
       const msg = /already/i.test(authErr.message)
         ? "Record added, but an old login with this ID exists. Delete it in Supabase > Authentication, then use Reset password on their page."
         : `Record added, login not created: ${authErr.message}. Use Reset password on their page.`;

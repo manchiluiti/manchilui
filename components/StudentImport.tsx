@@ -48,6 +48,7 @@ export default function StudentImport() {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<ImportResult[] | null>(null);
+  const [update, setUpdate] = useState(true);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     setError(""); setResults(null); setRows([]);
@@ -83,7 +84,7 @@ export default function StudentImport() {
     const all: ImportResult[] = [];
     for (let i = 0; i < good.length; i += 20) {
       try {
-        const res = await importStudents(good.slice(i, i + 20));
+        const res = await importStudents(good.slice(i, i + 20), update);
         all.push(...res);
       } catch {
         good.slice(i, i + 20).forEach((r) => all.push({ student_no: r.student_no, ok: false, msg: "Connection problem, try this one again" }));
@@ -105,6 +106,11 @@ export default function StudentImport() {
         <div className="rec-b" style={{ paddingBlock: 20, display: "grid", gap: 12 }}>
           <input type="file" accept=".csv,text/csv" onChange={onFile} disabled={busy} aria-label="CSV file" />
           <p className="hint">Columns: <b>Student ID</b>, <b>Full name</b>, <b>Session</b>, and optionally <b>Phone</b>, <b>Amount paid</b> and <b>Fees balance</b>. In Excel use File &gt; Save As &gt; CSV. Each student signs in with their ID as username and password, then must choose their own password.</p>
+          <label className="checks" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input type="checkbox" checked={update} onChange={(e) => setUpdate(e.target.checked)} disabled={busy} />
+            Update fees for students already in the system (otherwise they are skipped)
+          </label>
+          <p className="hint">If the file has no Amount paid column, paid is worked out as the tuition fee minus the balance.</p>
           {error && <div className="err" role="alert">{error}</div>}
         </div>
       </section>
@@ -135,9 +141,9 @@ export default function StudentImport() {
             </div>
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginTop: 16 }}>
               <button className="btn btn-orange btn-sm" onClick={run} disabled={busy || good === 0 || !!(results && results.length && !busy)}>
-                {busy ? `Importing… ${progress} of ${good}` : `Import ${good} student${good === 1 ? "" : "s"}`}
+                {busy ? `Working… ${progress} of ${good}` : `Import / update ${good} student${good === 1 ? "" : "s"}`}
               </button>
-              {results && !busy && results.length > 0 && <span className="ok-msg" style={{ padding: "8px 14px" }}>{added} added. <Link href="/admin/students" className="copy">Go to students →</Link></span>}
+              {results && !busy && results.length > 0 && <span className="ok-msg" style={{ padding: "8px 14px" }}>{added} done. <Link href="/admin/students/fees" className="copy">Check fees →</Link></span>}
             </div>
           </div>
         </section>

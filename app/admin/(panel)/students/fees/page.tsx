@@ -1,6 +1,6 @@
 import Link from "next/link";
 import FeesTable, { type FeeStudent } from "@/components/FeesTable";
-import { managementPage } from "@/lib/admin";
+import { managementPage, tuitionFee } from "@/lib/admin";
 
 export const maxDuration = 60;
 
@@ -10,6 +10,7 @@ export default async function FeesPage() {
     supabase.from("students").select("id,student_no,full_name,session,status,student_accounts(fees_balance,paid_before)").neq("status", "Withdrawn").order("student_no"),
     supabase.from("payments").select("student_id,amount"),
   ]);
+  const fee = await tuitionFee(supabase);
   const recorded = new Map<string, number>();
   (pays ?? []).forEach((p) => recorded.set(p.student_id, (recorded.get(p.student_id) ?? 0) + Number(p.amount)));
   const rows: FeeStudent[] = (students ?? []).map((s) => {
@@ -29,7 +30,7 @@ export default async function FeesPage() {
       <p className="hint" style={{ marginBottom: 16, maxWidth: 760 }}>
         Type each student&apos;s amount paid so far and balance, then save. Rows you change turn orange. For new money received from now on, use Record a payment on the student&apos;s page so they get a receipt.
       </p>
-      <FeesTable students={rows} />
+      <FeesTable students={rows} fee={fee} />
     </>
   );
 }

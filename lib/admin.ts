@@ -81,3 +81,12 @@ export async function managementPage(): Promise<Staff> {
   if (!staff.isManagement) redirect("/admin/teaching");
   return staff;
 }
+
+export const DEFAULT_TUITION = 6000;
+
+/** Standard tuition fee from Settings (K6000 until changed; works even before the 0010 migration runs). */
+export async function tuitionFee(supabase: Staff["supabase"]) {
+  const { data } = await supabase.from("app_settings").select("*").maybeSingle();
+  const v = Number((data as { tuition_fee?: number } | null)?.tuition_fee);
+  return Number.isFinite(v) && v > 0 ? v : DEFAULT_TUITION;
+}

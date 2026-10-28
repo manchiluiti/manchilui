@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import ActionForm from "@/components/ActionForm";
 import GradeBadge from "@/components/GradeBadge";
 import { gradeFor, type GradeBand } from "@/lib/grades";
-import { kwacha, managementPage, mark, MODULE_STATUSES, PAY_METHODS, STATUSES } from "@/lib/admin";
+import { kwacha, managementPage, mark, MODULE_STATUSES, PAY_METHODS, STATUSES, tuitionFee } from "@/lib/admin";
+import LinkedFeeInputs from "@/components/LinkedFeeInputs";
 import { editPayment, recordPayment, removePayment, saveStudentMarks, sendBalanceReminder, setFees, setPassword, updateStudent } from "../../../actions";
 import PasswordInput from "@/components/PasswordInput";
 
@@ -25,6 +26,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
   const scale = (scaleRows ?? []) as GradeBand[];
   if (!s) notFound();
   const bal = Number(acc?.fees_balance ?? 0);
+  const fee = await tuitionFee(supabase);
 
   const modules = ((mods ?? []) as unknown as ModRow[]).sort((a, b) => a.modules.sort - b.modules.sort);
   const paidBefore = Number(acc?.paid_before ?? 0);
@@ -75,11 +77,8 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
             <details className="payedit" style={{ padding: "4px 24px 8px" }}>
               <summary>Edit amount paid and balance</summary>
               <ActionForm action={setFees.bind(null, id)} submit="Save fees" variant="navy">
-                <div className="fgrid">
-                  <div className="field"><label htmlFor="f-paid">Amount paid so far (K)</label><input id="f-paid" name="paid_so_far" inputMode="decimal" defaultValue={String(totalPaid)} /></div>
-                  <div className="field"><label htmlFor="f-bal">Balance (K)</label><input id="f-bal" name="balance" inputMode="decimal" defaultValue={String(bal)} /></div>
-                </div>
-                <p className="hint">Use this to set totals, for example money paid before the portal existed. For new money received, use Record a payment so it gets a receipt.</p>
+                <LinkedFeeInputs fee={fee} paid={totalPaid} balance={bal} />
+                <p className="hint">For new money received from now on, use Record a payment so it gets a receipt.</p>
               </ActionForm>
             </details>
             <div className="rec-b">

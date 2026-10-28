@@ -795,11 +795,14 @@ export async function saveSettings(_: FormState, fd: FormData): Promise<FormStat
     const rates = ["napsa_rate", "nhima_rate", "paye_rate"].map((r) => Number(str(fd, r) || "0"));
     if (!(reminder_day >= 1 && reminder_day <= 28)) return { error: "Reminder day must be between 1 and 28." };
     if (rates.some((r) => !(r >= 0 && r <= 100))) return { error: "Rates must be between 0 and 100%." };
+    const tuition_fee = money(str(fd, "tuition_fee") || "6000");
+    if (!(tuition_fee > 0)) return { error: "Tuition fee must be a number, for example 6000." };
     const { error } = await supabase.from("app_settings").update({
       sms_enabled: fd.get("sms_enabled") === "on",
       reminder_day,
       napsa_rate: rates[0], nhima_rate: rates[1], paye_rate: rates[2],
       results_statement_enabled: fd.get("results_statement_enabled") === "on",
+      tuition_fee,
       updated_at: new Date().toISOString(),
     }).eq("id", true);
     if (error) return { error: error.message };

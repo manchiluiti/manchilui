@@ -8,7 +8,7 @@ export type FeeStudent = { id: string; student_no: string; full_name: string; se
 const k = (n: number) => `K ${n.toLocaleString("en-ZM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const num = (s: string) => Number(s.replace(/[,\sK]/gi, ""));
 
-export default function FeesTable({ students }: { students: FeeStudent[] }) {
+export default function FeesTable({ students, fee }: { students: FeeStudent[]; fee: number }) {
   const [vals, setVals] = useState<Record<string, { paid: string; balance: string }>>(
     () => Object.fromEntries(students.map((s) => [s.id, { paid: String(s.paid), balance: String(s.balance) }])),
   );
@@ -43,7 +43,7 @@ export default function FeesTable({ students }: { students: FeeStudent[] }) {
     <>
       <div className="filters">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or ID" aria-label="Search students" />
-        <span className="hint" style={{ margin: 0 }}>Total paid {k(totals.paid)} · Total outstanding {k(totals.bal)}</span>
+        <span className="hint" style={{ margin: 0 }}>Tuition K{fee.toLocaleString("en-ZM")}: type paid or balance and the other fills in · Total paid {k(totals.paid)} · Outstanding {k(totals.bal)}</span>
       </div>
       <div className="tablewrap">
         <table className="table feestable">
@@ -60,8 +60,8 @@ export default function FeesTable({ students }: { students: FeeStudent[] }) {
                     <small className="sub">{s.student_no} · {s.session}</small>
                     {errs[s.id] && <small className="err" style={{ display: "block" }}>{errs[s.id]}</small>}
                   </td>
-                  <td className="num"><input inputMode="decimal" value={v.paid} aria-label={`${s.full_name} paid so far`} onChange={(e) => setVals({ ...vals, [s.id]: { ...v, paid: e.target.value } })} /></td>
-                  <td className="num"><input inputMode="decimal" value={v.balance} aria-label={`${s.full_name} balance`} onChange={(e) => setVals({ ...vals, [s.id]: { ...v, balance: e.target.value } })} /></td>
+                  <td className="num"><input inputMode="decimal" value={v.paid} aria-label={`${s.full_name} paid so far`} onChange={(e) => { const n = num(e.target.value); setVals({ ...vals, [s.id]: { paid: e.target.value, balance: Number.isNaN(n) ? v.balance : String(Math.max(0, Math.round((fee - n) * 100) / 100)) } }); }} /></td>
+                  <td className="num"><input inputMode="decimal" value={v.balance} aria-label={`${s.full_name} balance`} onChange={(e) => { const n = num(e.target.value); setVals({ ...vals, [s.id]: { balance: e.target.value, paid: Number.isNaN(n) ? v.paid : String(Math.max(0, Math.round((fee - n) * 100) / 100)) } }); }} /></td>
                   <td className="num">{Number.isNaN(total) ? "–" : k(total)}</td>
                 </tr>
               );

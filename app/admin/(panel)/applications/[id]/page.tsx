@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ActionForm from "@/components/ActionForm";
-import { kwacha, managementPage } from "@/lib/admin";
+import { kwacha, managementPage, tuitionFee } from "@/lib/admin";
 import { nextStudentId } from "@/lib/site";
 import { acceptApplication, registerApplicant, rejectApplication, reopenApplication } from "../../../actions";
 import PasswordInput from "@/components/PasswordInput";
@@ -21,6 +21,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
     const { data: signed } = await supabase.storage.from("applications").createSignedUrls(docs.map((x) => x.path), 3600);
     (signed ?? []).forEach((s) => s.path && s.signedUrl && urls.set(s.path, s.signedUrl));
   }
+  const fee = await tuitionFee(supabase);
   const year = new Date().getFullYear();
   const { data: last } = await supabase.from("students").select("student_no").like("student_no", `${year}%`);
   const nextId = nextStudentId((last ?? []).map((d) => d.student_no), year);
@@ -69,7 +70,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
                 <div className="rec-b" style={{ paddingBlock: 20 }}>
                   <ActionForm action={acceptApplication.bind(null, id)} submit="Accept applicant">
                     <div className="fgrid">
-                      <div className="field"><label htmlFor="fo">Total fees (K)</label><input id="fo" name="fees_offered" inputMode="decimal" /></div>
+                      <div className="field"><label htmlFor="fo">Total fees (K)</label><input id="fo" name="fees_offered" inputMode="decimal" defaultValue={String(fee)} /></div>
                       <div className="field"><label htmlFor="sd">Start date</label><input id="sd" name="start_date" type="date" /></div>
                     </div>
                     <div className="field"><label htmlFor="an">Note for the letter (optional)</label><input id="an" name="decision_note" placeholder="e.g. Report to the office by 8:00 on the first day" /></div>

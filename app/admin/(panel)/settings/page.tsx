@@ -38,6 +38,8 @@ export default async function SettingsPage() {
                     {Array.from({ length: 28 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}{n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : n === 21 ? "st" : n === 22 ? "nd" : n === 23 ? "rd" : "th"} of each month</option>)}
                   </select>
                 </div>
+                <h3 className="subhead">Fees</h3>
+                <div className="field"><label htmlFor="tf">Tuition fee per student (K)</label><input id="tf" name="tuition_fee" inputMode="decimal" defaultValue={String((s as { tuition_fee?: number } | null)?.tuition_fee ?? 6000)} /></div>
                 <h3 className="subhead">Statutory deductions on payslips</h3>
                 <div className="fgrid">
                   <div className="field"><label htmlFor="napsa">NAPSA (% of gross)</label><input id="napsa" name="napsa_rate" inputMode="decimal" defaultValue={String(s?.napsa_rate ?? 0)} /></div>

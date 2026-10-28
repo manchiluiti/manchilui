@@ -5,7 +5,7 @@ import GradeBadge from "@/components/GradeBadge";
 import NoteUpload from "@/components/NoteUpload";
 import { gradeFor, type GradeBand } from "@/lib/grades";
 import { fmtWhen, getStaff, mark, MODULE_STATUSES } from "@/lib/admin";
-import { createClass, deleteAnnouncement, deleteClass, deleteNote, postModuleAnnouncement, saveModuleMarks } from "../../../actions";
+import { createClass, deleteAnnouncement, deleteClass, deleteMessage, deleteNote, postModuleAnnouncement, saveModuleMarks, sendStudentComment } from "../../../actions";
 
 type Row = {
   student_id: string; status: string; ca_mark: number | null; exam_mark: number | null; final_mark: number | null;
@@ -30,7 +30,7 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
   }
 
   const since = new Date(Date.now() - 2 * 3600e3).toISOString();
-  const [{ data: rows }, { data: notes }, { data: classes }, { data: anns }, { data: people }, { data: lecturers }, { data: scaleRows }] = await Promise.all([
+  const [{ data: rows }, { data: notes }, { data: classes }, { data: anns }, { data: people }, { data: lecturers }, { data: scaleRows }, { data: comments }] = await Promise.all([
     sb.from("student_modules").select("student_id,status,ca_mark,exam_mark,final_mark,marks_updated_by,marks_updated_at,students(full_name,student_no,status)").eq("module_code", code),
     sb.from("notes").select("id,title,file_path,file_name,file_size,created_at,uploaded_by").eq("module_code", code).order("created_at", { ascending: false }),
     sb.from("classes").select("id,title,starts_at,duration_min,meeting_url,details").eq("module_code", code).gte("starts_at", since).order("starts_at"),
@@ -38,6 +38,7 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
     sb.from("staff").select("user_id,full_name"),
     sb.from("module_lecturers").select("lecturer_id").eq("module_code", code),
     sb.from("grade_scale").select("letter,min_mark,remark,is_pass"),
+    sb.from("messages").select("id,student_id,subject,body,category,created_at,sender_id,sender_name").eq("module_code", code).eq("audience", "student").order("created_at", { ascending: false }).limit(30),
   ]);
   const scale = (scaleRows ?? []) as GradeBand[];
 
@@ -177,6 +178,46 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
                   </div>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section className="rec">
+            <div className="rec-h"><h2>Comment on a student</h2></div>
+            <div className="rec-b" style={{ paddingBlock: 20 }}>
+              <ActionForm action={sendStudentComment.bind(null, code)} submit="Send to student" resetOnSuccess>
+                <div className="fgrid">
+                  <div className="field"><label htmlFor="sc-st">Student</label>
+                    <select id="sc-st" name="student_id" defaultValue="">
+                      <option value="" disabled>Choose…</option>
+                      {students.map((r) => <option key={r.student_id} value={r.student_id}>{r.students!.full_name} · {r.students!.student_no}</option>)}
+                    </select>
+                  </div>
+                  <div className="field"><label htmlFor="sc-cat">Type</label>
+                    <select id="sc-cat" name="category" defaultValue="performance"><option value="performance">Performance comment / review</option><option value="message">General message</option></select>
+                  </div>
+                </div>
+                <div className="field"><label htmlFor="sc-subj">Title</label><input id="sc-subj" name="subject" placeholder="Mid-term progress" /></div>
+                <div className="field"><label htmlFor="sc-body">Comment</label><textarea id="sc-body" name="body" placeholder="Strong on documentation; needs to revise tariff classification before the exam." /></div>
+                <p className="hint">The student sees this in their portal. Management can read every comment.</p>
+              </ActionForm>
+            </div>
+            <div className="rec-b" style={{ borderTop: "1px solid #F3F4F6" }}>
+              {(comments ?? []).length === 0 && <p className="muted-row">No comments sent in this module yet.</p>}
+              {(comments ?? []).map((c) => {
+                const st = students.find((r) => r.student_id === c.student_id)?.students;
+                return (
+                  <div className="row" key={c.id} style={{ alignItems: "flex-start" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <b>{c.category === "performance" && <span className="tag">Performance</span>}{c.subject}</b>
+                      <small>To {st?.full_name ?? "student"} · from {c.sender_name ?? nameOf(c.sender_id)} · {fmtWhen(c.created_at)}</small>
+                      <p className="abody">{c.body}</p>
+                    </div>
+                    {(staff.isManagement || c.sender_id === staff.user.id) && (
+                      <form action={deleteMessage.bind(null, c.id)}><button className="del" type="submit">Delete</button></form>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
 

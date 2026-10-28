@@ -4,6 +4,7 @@ import ActionForm from "@/components/ActionForm";
 import { kwacha, managementPage } from "@/lib/admin";
 import { nextStudentId } from "@/lib/site";
 import { acceptApplication, registerApplicant, rejectApplication, reopenApplication } from "../../../actions";
+import PasswordInput from "@/components/PasswordInput";
 
 type Doc = { path: string; name: string; kind: string };
 const KIND: Record<string, string> = { results: "Grade 12 results", nrc: "NRC", photo: "Photo" };
@@ -95,7 +96,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
                   <div className="fgrid">
                     <div className="field"><label htmlFor="sn">Student ID</label><input id="sn" name="student_no" defaultValue={nextId} /></div>
                     <div className="field"><label htmlFor="ss">Session</label><input id="ss" name="session" placeholder="January – June 2027" /></div>
-                    <div className="field"><label htmlFor="sp">Portal password (optional)</label><input id="sp" name="password" autoComplete="new-password" placeholder="Blank = student ID" /></div>
+                    <div className="field"><label htmlFor="sp">Portal password (optional)</label><PasswordInput id="sp" name="password" autoComplete="new-password" placeholder="Blank = student ID" /></div>
                   </div>
                 </ActionForm>
               </div>

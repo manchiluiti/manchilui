@@ -19,18 +19,18 @@ export default async function Letter({ params }: { params: Promise<{ id: string 
         <header>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <Logo size={64} />
-            <div><b className="ps-name">{SITE.name}</b><small>{SITE.address}<br />{SITE.directorPhone} · {SITE.email}</small></div>
+            <div><b className="ps-name">{SITE.name}</b><small>{SITE.address}<br />{SITE.phone} · {SITE.email}</small></div>
           </div>
         </header>
         <p>{long(a.reviewed_at ?? new Date().toISOString())}</p>
         <p><b>{a.full_name}</b>{a.town ? <><br />{a.town}</> : null}<br />{a.phone}</p>
         <h2 className="letter-title">Offer of Admission: {SITE.programme}</h2>
         <p>Dear {a.full_name.split(" ")[0]},</p>
-        <p>We are pleased to inform you that your application to {SITE.name} has been successful. You are offered a place on the six-month {SITE.programme} programme.</p>
+        <p>We are pleased to inform you that your application to {SITE.name} has been successful. You are offered a place on the one-year {SITE.programme} programme.</p>
         <table className="ps-table">
           <tbody>
             <tr><td>Programme</td><td className="num">{SITE.programme}</td></tr>
-            <tr><td>Duration</td><td className="num">6 months, full time</td></tr>
+            <tr><td>Duration</td><td className="num">1 year, full time</td></tr>
             <tr><td>Start date</td><td className="num">{long(a.start_date)}</td></tr>
             <tr className="net"><td>Total fees</td><td className="num">{kwacha(a.fees_offered ?? 0)}</td></tr>
           </tbody>

@@ -487,3 +487,15 @@ a.fcard:hover .more { transform: translateX(8px); }
 .letter .ps-table .num { text-align: right; }
 .alink-light { color: var(--on-navy); font-size: .88rem; font-weight: 600; }
 .alink-light:hover { color: var(--orange); }
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 48px !important; width: 100%; }
+.pw-toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; display: grid; place-items: center; color: var(--muted); border-radius: 10px; }
+.pw-toggle:hover, .pw-toggle[aria-pressed="true"] { color: var(--orange); }
+.feestable { min-width: 620px; }
+.feestable input { font: inherit; width: 120px; text-align: right; border: 1px solid #D1D5DB; border-radius: 10px; padding: 8px 10px; color: var(--navy); background: #fff; }
+.feestable tr.dirty td { background: var(--peach); }
+.savebar { position: sticky; bottom: 0; display: flex; justify-content: flex-end; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 0; padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(transparent, var(--bg-soft) 30%); }
+.form-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-sms { background: var(--wa); color: #fff; }
+.btn-sms:hover { background: #1EBE5A; }
+.tag { display: inline-block; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; background: var(--peach); color: var(--orange-h); margin-right: 6px; }

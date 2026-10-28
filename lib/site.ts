@@ -2,7 +2,7 @@ export const SITE = {
   name: "Manchilui Training Institute",
   place: "Eastrise · Chipata · Zambia",
   address: "Eastrise, Chipata, Eastern Province, Zambia",
-  directorPhone: "+260 970 615 997",
+  phone: "+260 973 742 072",
   email: "info@manchilui.com",
   programme: "Diploma in Clearing & Forwarding",
 };

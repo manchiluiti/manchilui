@@ -1,6 +1,7 @@
 import ActionForm from "@/components/ActionForm";
 import { managementPage } from "@/lib/admin";
 import { createStaff, removeStaffAccess, setStaffPassword, updateStaff } from "../../actions";
+import PasswordInput from "@/components/PasswordInput";
 
 export default async function StaffPage() {
   const me = await managementPage();
@@ -57,7 +58,7 @@ export default async function StaffPage() {
                     <ModulePicker chosen={modsOf(s.user_id)} />
                   </ActionForm>
                   <ActionForm action={setStaffPassword.bind(null, s.user_id)} submit="Change password" variant="navy" resetOnSuccess>
-                    <div className="field"><label htmlFor={`pw-${s.user_id}`}>New password</label><input id={`pw-${s.user_id}`} name="password" autoComplete="new-password" placeholder="At least 8 characters" /></div>
+                    <div className="field"><label htmlFor={`pw-${s.user_id}`}>New password</label><PasswordInput id={`pw-${s.user_id}`} name="password" autoComplete="new-password" placeholder="At least 8 characters" /></div>
                   </ActionForm>
                   {s.user_id !== me.user.id && !noAccess && (
                     <form action={removeStaffAccess.bind(null, s.user_id)}>
@@ -76,7 +77,7 @@ export default async function StaffPage() {
             <ActionForm action={createStaff} submit="Create staff login" resetOnSuccess>
               <div className="field"><label htmlFor="s-name">Full name</label><input id="s-name" name="full_name" /></div>
               <div className="field"><label htmlFor="s-email">Email (used to sign in)</label><input id="s-email" name="email" type="email" autoComplete="off" /></div>
-              <div className="field"><label htmlFor="s-pw">Password</label><input id="s-pw" name="password" autoComplete="new-password" placeholder="At least 8 characters" /></div>
+              <div className="field"><label htmlFor="s-pw">Password</label><PasswordInput id="s-pw" name="password" autoComplete="new-password" placeholder="At least 8 characters" /></div>
               <div className="checks inline">
                 <label><input type="checkbox" name="is_management" /> Management</label>
                 <label><input type="checkbox" name="is_lecturer" defaultChecked /> Lecturer</label>

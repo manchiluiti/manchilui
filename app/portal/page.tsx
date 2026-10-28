@@ -34,7 +34,7 @@ export default async function Portal() {
     return (
       <div className="login"><div className="wrap"><div className="lcard">
         <h1>Record not found</h1>
-        <p style={{ textAlign: "center" }}>Your login works, but no student record is linked to it yet. Contact the office on {SITE.directorPhone}.</p>
+        <p style={{ textAlign: "center" }}>Your login works, but no student record is linked to it yet. Contact the office on {SITE.phone}.</p>
         <form action={signOut}><button className="btn btn-orange" style={{ width: "100%" }}>Sign out</button></form>
       </div></div></div>
     );
@@ -42,14 +42,14 @@ export default async function Portal() {
 
   const since = new Date(Date.now() - 2 * 3600e3).toISOString();
   const [{ data: acc }, { data: mods }, { data: ann }, { data: pays }, { data: classes }, { data: notes }, { data: scaleRows }, { data: msgs }] = await Promise.all([
-    supabase.from("student_accounts").select("fees_balance,remark").eq("student_id", student.id).maybeSingle(),
+    supabase.from("student_accounts").select("fees_balance,paid_before,remark").eq("student_id", student.id).maybeSingle(),
     supabase.from("student_modules").select("module_code,status,ca_mark,exam_mark,final_mark,modules(name,sort)").eq("student_id", student.id),
-    supabase.from("announcements").select("id,title,body,posted_on,module_code").order("posted_on", { ascending: false }).order("created_at", { ascending: false }).limit(8),
+    supabase.from("announcements").select("id,title,body,posted_on,module_code").in("audience", ["public", "students", "staff_students", "module"]).order("posted_on", { ascending: false }).order("created_at", { ascending: false }).limit(8),
     supabase.from("payments").select("id,amount,method,reference,paid_on").eq("student_id", student.id).order("paid_on", { ascending: false }),
     supabase.from("classes").select("id,module_code,title,starts_at,duration_min,meeting_url,details").gte("starts_at", since).order("starts_at").limit(8),
     supabase.from("notes").select("id,module_code,title,file_path,file_name,created_at").order("created_at", { ascending: false }),
     supabase.from("grade_scale").select("letter,min_mark,remark,is_pass").order("min_mark", { ascending: false }),
-    supabase.from("messages").select("id,subject,body,created_at").eq("audience", "student").eq("student_id", student.id).order("created_at", { ascending: false }).limit(30),
+    supabase.from("messages").select("id,subject,body,created_at,sender_name,category,module_code").eq("audience", "student").eq("student_id", student.id).order("created_at", { ascending: false }).limit(30),
   ]);
   const scale = (scaleRows ?? []) as GradeBand[];
 
@@ -57,7 +57,7 @@ export default async function Portal() {
   const done = modules.filter((m) => m.status === "Completed").length;
   const bal = Number(acc?.fees_balance ?? 0);
   const owing = bal > 0;
-  const paid = (pays ?? []).reduce((t, p) => t + Number(p.amount), 0);
+  const paid = Number(acc?.paid_before ?? 0) + (pays ?? []).reduce((t, p) => t + Number(p.amount), 0);
 
   // Messages: highlight unread ones, then mark them read (opening the portal counts as reading).
   const msgIds = (msgs ?? []).map((m) => m.id);
@@ -164,8 +164,8 @@ export default async function Portal() {
               {(msgs ?? []).length === 0 && <p className="muted-row">No messages from the office.</p>}
               {(msgs ?? []).map((m) => (
                 <div className={`msgcard ${readSet.has(m.id) ? "" : "unread"}`} key={m.id}>
-                  <b>{m.subject}</b>
-                  <small>From the office · {when(m.created_at)}</small>
+                  <b>{m.category === "performance" && <span className="tag">Lecturer comment</span>}{m.subject}</b>
+                  <small>From {m.sender_name ?? "the office"}{m.module_code ? ` · ${m.module_code}` : ""} · {when(m.created_at)}</small>
                   <p className="abody">{m.body}</p>
                 </div>
               ))}
@@ -198,7 +198,10 @@ export default async function Portal() {
               <div><div className="k">Balance</div><div className="v" style={{ color: owing ? "var(--warn)" : "var(--ok)" }}>{owing ? kwacha(bal) : "K 0.00"}</div></div>
             </div>
             <div className="rec-b">
-              {(pays ?? []).length === 0 && <p className="muted-row">No payments recorded yet.</p>}
+              {Number(acc?.paid_before ?? 0) > 0 && (
+                <div className="row"><div><b>{kwacha(Number(acc?.paid_before))}</b><small>Paid before the portal started</small></div></div>
+              )}
+              {(pays ?? []).length === 0 && !Number(acc?.paid_before ?? 0) && <p className="muted-row">No payments recorded yet.</p>}
               {(pays ?? []).map((p) => (
                 <div className="row" key={p.id}>
                   <div><b>{kwacha(p.amount)}</b><small>{p.paid_on} · {p.method}{p.reference ? ` · Ref ${p.reference}` : ""}</small></div>

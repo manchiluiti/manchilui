@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { clearPasswordFlag } from "@/app/portal/actions";
 import { createClient } from "@/lib/supabase/client";
+import PasswordInput from "./PasswordInput";
 
 /** Lets the signed-in user set a new password. `forbidden` is a value the new password may not equal (e.g. the student ID). */
 export default function ChangePassword({ forbidden, next, submit = "Save new password" }: { forbidden?: string; next: string; submit?: string }) {
@@ -36,8 +37,8 @@ export default function ChangePassword({ forbidden, next, submit = "Save new pas
   if (done) return <div className="ok-msg" role="status">Password changed. Taking you in…</div>;
   return (
     <form className="aform" onSubmit={onSubmit} noValidate>
-      <div className="field"><label htmlFor="np">New password</label><input id="np" name="password" type="password" autoComplete="new-password" /></div>
-      <div className="field"><label htmlFor="np2">Type it again</label><input id="np2" name="again" type="password" autoComplete="new-password" /></div>
+      <div className="field"><label htmlFor="np">New password</label><PasswordInput id="np" name="password" autoComplete="new-password" /></div>
+      <div className="field"><label htmlFor="np2">Type it again</label><PasswordInput id="np2" name="again" autoComplete="new-password" /></div>
       <p className="hint">At least 8 characters, with letters and numbers. Don&apos;t share it with anyone.</p>
       {error && <div className="err" role="alert">{error}</div>}
       <button className="btn btn-orange" type="submit" disabled={busy}>{busy ? "Saving…" : submit}</button>

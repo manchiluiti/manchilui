@@ -89,16 +89,14 @@ export async function updateStudent(id: string, _: FormState, fd: FormData): Pro
   try {
     const { supabase } = await requireManagement();
     const status = str(fd, "status");
-    const fees_balance = money(str(fd, "fees_balance"));
     if (!STATUSES.includes(status as (typeof STATUSES)[number])) return { error: "Choose a valid status." };
-    if (Number.isNaN(fees_balance)) return { error: "Fees balance must be a number." };
     const full_name = str(fd, "full_name");
     if (full_name.length < 2) return { error: "Enter the student's full name." };
 
     const { error } = await supabase.from("students").update({ full_name, session: str(fd, "session"), status }).eq("id", id);
     if (error) return { error: error.message };
     const { error: e2 } = await supabase.from("student_accounts").upsert({
-      student_id: id, fees_balance, phone: str(fd, "phone") || null, remark: str(fd, "remark") || null, updated_at: new Date().toISOString(),
+      student_id: id, phone: str(fd, "phone") || null, remark: str(fd, "remark") || null, updated_at: new Date().toISOString(),
     });
     if (e2) return { error: e2.message };
     refresh();
@@ -286,12 +284,19 @@ export async function createAnnouncement(_: FormState, fd: FormData): Promise<Fo
     const { supabase } = await requireManagement();
     const title = str(fd, "title");
     const body = str(fd, "body");
-    const audience = str(fd, "audience") === "students" ? "students" : "public";
+    const AUD: Record<string, string> = {
+      public: "Posted on the website, the student portal and the staff admin.",
+      website: "Posted on the website only.",
+      students: "Posted in the Student Portal only.",
+      staff: "Posted for staff only (admin).",
+      staff_students: "Posted for staff and students (not on the website).",
+    };
+    const audience = AUD[str(fd, "audience")] ? str(fd, "audience") : "public";
     if (!title || !body) return { error: "Add a title and a message." };
     const { error } = await supabase.from("announcements").insert({ title, body, audience, posted_on: str(fd, "posted_on") || undefined });
     if (error) return { error: error.message };
     refresh();
-    return { ok: audience === "public" ? "Posted on the website and the portal." : "Posted in the Student Portal." };
+    return { ok: AUD[audience] };
   } catch (e) {
     return fail(e);
   }
@@ -471,18 +476,55 @@ export async function removePayment(paymentId: string) {
 
 /* =================== Messages =================== */
 
+/** SMS copy of a message. Fits in at most 3 SMS parts. */
+const smsText = (subject: string, body: string) => {
+  const t = `Manchilui: ${subject}. ${body}`.replace(/\s+/g, " ").trim();
+  return t.length > 450 ? `${t.slice(0, 430).trimEnd()}… (full message in portal)` : t;
+};
+
+async function smsForMessage(sb: Awaited<ReturnType<typeof createClient>>, messageId: string, to: string, subject: string, body: string) {
+  const phones: { phone: string | null; student_id?: string; staff_id?: string }[] = [];
+  if (to.startsWith("student:")) {
+    const { data } = await sb.from("student_accounts").select("phone").eq("student_id", to.slice(8)).maybeSingle();
+    phones.push({ phone: data?.phone ?? null, student_id: to.slice(8) });
+  } else if (to.startsWith("staff:")) {
+    const { data } = await sb.from("staff_pay").select("phone").eq("user_id", to.slice(6)).maybeSingle();
+    phones.push({ phone: data?.phone ?? null, staff_id: to.slice(6) });
+  } else {
+    const { data: lect } = await sb.from("staff").select("user_id").eq("is_lecturer", true);
+    const ids = (lect ?? []).map((l) => l.user_id);
+    const { data } = ids.length ? await sb.from("staff_pay").select("user_id,phone").in("user_id", ids) : { data: [] as { user_id: string; phone: string | null }[] };
+    ids.forEach((id) => phones.push({ phone: (data ?? []).find((d) => d.user_id === id)?.phone ?? null, staff_id: id }));
+  }
+  const message = smsText(subject, body);
+  let sent = 0, missing = 0, failed = 0;
+  for (const p of phones) {
+    const num = normalizePhone(p.phone);
+    if (!num) { missing++; continue; }
+    const r = await sendSms(num, message);
+    await sb.from("sms_log").insert({ kind: "message", message_id: messageId, student_id: p.student_id ?? null, staff_id: p.staff_id ?? null, to_phone: num, message, status: r.ok ? "sent" : "failed", detail: r.detail, cost: r.cost ?? null });
+    if (r.ok) sent++; else failed++;
+  }
+  return { sent, missing, failed };
+}
+
 export async function sendMessage(_: FormState, fd: FormData): Promise<FormState> {
   try {
-    const { supabase, user } = await requireManagement();
+    const { supabase, user, name } = await requireManagement();
     const to = str(fd, "to"); // "student:<id>" | "staff:<user_id>" | "all_lecturers"
     const subject = str(fd, "subject");
     const body = str(fd, "body");
+    const withSms = str(fd, "channel") === "sms";
     if (!to) return { error: "Choose who the message is for." };
     if (!subject) return { error: "Add a subject." };
     if (!body) return { error: "Write the message." };
     if (body.length > 4000) return { error: "Message is too long. Keep it under 4,000 characters." };
+    if (withSms) {
+      const { data: st } = await supabase.from("app_settings").select("sms_enabled").maybeSingle();
+      if (!st?.sms_enabled) return { error: "SMS is switched off. Turn it on in Admin > Settings, or use Send (portal only)." };
+    }
 
-    let row: Record<string, string> = { sender_id: user.id, subject, body };
+    let row: Record<string, string> = { sender_id: user.id, sender_name: name, subject, body };
     let label = "all lecturers";
     if (to === "all_lecturers") {
       row = { ...row, audience: "all_lecturers" };
@@ -495,19 +537,49 @@ export async function sendMessage(_: FormState, fd: FormData): Promise<FormState
     } else {
       return { error: "Choose who the message is for." };
     }
-    const { error } = await supabase.from("messages").insert(row);
+    const { data: msg, error } = await supabase.from("messages").insert(row).select("id").single();
     if (error) return { error: error.message };
+    let smsNote = "";
+    if (withSms) {
+      const r = await smsForMessage(supabase, msg.id, to, subject, body);
+      smsNote = ` SMS: ${r.sent} sent${r.missing ? `, ${r.missing} with no phone number` : ""}${r.failed ? `, ${r.failed} failed (see SMS log)` : ""}.`;
+    }
     refresh();
-    return { ok: `Sent to ${label}. They'll see it next time they sign in.` };
+    return { ok: `Sent to ${label} in the portal.${smsNote}` };
   } catch (e) {
     return fail(e);
   }
 }
 
 export async function deleteMessage(id: string) {
-  const { supabase } = await requireManagement();
+  const { supabase } = await requireStaff();
   await supabase.from("messages").delete().eq("id", id);
   refresh();
+}
+
+/** Lecturers (and management) send a message or performance comment to one student in a module. */
+export async function sendStudentComment(code: string, _: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase, user, name } = await requireModuleAccess(code);
+    const studentId = str(fd, "student_id");
+    const category = str(fd, "category") === "performance" ? "performance" : "message";
+    const subject = str(fd, "subject");
+    const body = str(fd, "body");
+    if (!studentId) return { error: "Choose a student." };
+    if (!subject) return { error: "Add a short title, for example Mid-term progress." };
+    if (!body) return { error: "Write your comment." };
+    if (body.length > 4000) return { error: "Too long. Keep it under 4,000 characters." };
+    const { data: enrolled } = await supabase.from("student_modules").select("student_id").eq("student_id", studentId).eq("module_code", code).maybeSingle();
+    if (!enrolled) return { error: "That student isn't in this module." };
+    const { error } = await supabase.from("messages").insert({
+      sender_id: user.id, sender_name: name, audience: "student", student_id: studentId, subject, body, category, module_code: code,
+    });
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: category === "performance" ? "Comment sent. The student and management can see it." : "Message sent to the student." };
+  } catch (e) {
+    return fail(e);
+  }
 }
 
 /* =================== Payroll (management) =================== */
@@ -842,7 +914,7 @@ export async function registerApplicant(id: string, _: FormState, fd: FormData):
 
 /* =================== Bulk student import (management) =================== */
 
-export type ImportRow = { student_no: string; full_name: string; session: string; phone?: string; fees_balance?: string };
+export type ImportRow = { student_no: string; full_name: string; session: string; phone?: string; fees_balance?: string; paid?: string };
 export type ImportResult = { student_no: string; ok: boolean; msg: string };
 
 /** Imports up to 25 students per call. Each gets a login with their ID as the first password. */
@@ -855,14 +927,16 @@ export async function importStudents(rows: ImportRow[]): Promise<ImportResult[]>
     const full_name = (r.full_name ?? "").trim().replace(/\s+/g, " ");
     const session = (r.session ?? "").trim();
     const fees = money(String(r.fees_balance ?? "").trim() || "0");
+    const paidBefore = money(String(r.paid ?? "").trim() || "0");
     if (!STUDENT_ID_RE.test(student_no)) { out.push({ student_no: student_no || "(blank)", ok: false, msg: `ID must be ${STUDENT_ID_HINT}` }); continue; }
     if (full_name.length < 2) { out.push({ student_no, ok: false, msg: "Name missing" }); continue; }
     if (!session) { out.push({ student_no, ok: false, msg: "Session missing" }); continue; }
     if (Number.isNaN(fees)) { out.push({ student_no, ok: false, msg: "Fees balance isn't a number" }); continue; }
+    if (Number.isNaN(paidBefore) || paidBefore < 0) { out.push({ student_no, ok: false, msg: "Amount paid isn't a number" }); continue; }
 
     const { data: row, error } = await supabase.from("students").insert({ student_no, full_name, session }).select("id").single();
     if (error) { out.push({ student_no, ok: false, msg: error.code === "23505" ? "Already exists (skipped)" : error.message }); continue; }
-    const { error: accErr } = await supabase.from("student_accounts").upsert({ student_id: row.id, fees_balance: fees, phone: (r.phone ?? "").trim() || null });
+    const { error: accErr } = await supabase.from("student_accounts").upsert({ student_id: row.id, fees_balance: fees, paid_before: paidBefore, phone: (r.phone ?? "").trim() || null });
     if (accErr) { await supabase.from("students").delete().eq("id", row.id); out.push({ student_no, ok: false, msg: accErr.message }); continue; }
     const { error: authErr } = await createStudentLogin(auth, student_no, "");
     if (authErr) {
@@ -877,4 +951,53 @@ export async function importStudents(rows: ImportRow[]): Promise<ImportResult[]>
   }
   refresh();
   return out;
+}
+
+
+/* =================== Fees totals (management) =================== */
+
+type Sb2 = Awaited<ReturnType<typeof createClient>>;
+
+/** Sets "amount paid so far" and "balance" for one student. Paid so far = paid before the system + recorded payments. */
+async function applyFees(sb: Sb2, studentId: string, paidSoFar: number, balance: number): Promise<string | null> {
+  if (!(paidSoFar >= 0) || !(balance >= 0)) return "Amounts must be numbers of 0 or more.";
+  const { data: pays } = await sb.from("payments").select("amount").eq("student_id", studentId);
+  const recorded = (pays ?? []).reduce((t, p) => t + Number(p.amount), 0);
+  const paid_before = Math.round((paidSoFar - recorded) * 100) / 100;
+  if (paid_before < 0) return `Paid so far can't be less than the K${recorded.toLocaleString("en-ZM")} already recorded as payments. Edit or remove those payments instead.`;
+  const { error } = await sb.from("student_accounts").upsert({ student_id: studentId, paid_before, fees_balance: balance, updated_at: new Date().toISOString() });
+  return error ? error.message : null;
+}
+
+export async function setFees(studentId: string, _: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const paid = money(str(fd, "paid_so_far") || "0");
+    const bal = money(str(fd, "balance") || "0");
+    if (Number.isNaN(paid) || Number.isNaN(bal)) return { error: "Enter numbers only, for example 1500." };
+    const err = await applyFees(supabase, studentId, paid, bal);
+    if (err) return { error: err };
+    refresh();
+    return { ok: `Saved. Paid K${paid.toLocaleString("en-ZM")}, balance K${bal.toLocaleString("en-ZM")}, total K${(paid + bal).toLocaleString("en-ZM")}.` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export type FeeRow = { student_id: string; paid: string; balance: string };
+
+/** Bulk fees table: saves only the rows that changed. */
+export async function bulkSetFees(rows: FeeRow[]): Promise<{ saved: number; errors: { student_id: string; msg: string }[] }> {
+  const { supabase } = await requireManagement();
+  let saved = 0;
+  const errors: { student_id: string; msg: string }[] = [];
+  for (const r of rows.slice(0, 300)) {
+    const paid = money(r.paid || "0");
+    const bal = money(r.balance || "0");
+    if (Number.isNaN(paid) || Number.isNaN(bal)) { errors.push({ student_id: r.student_id, msg: "Not a number" }); continue; }
+    const err = await applyFees(supabase, r.student_id, paid, bal);
+    if (err) errors.push({ student_id: r.student_id, msg: err }); else saved++;
+  }
+  refresh();
+  return { saved, errors };
 }

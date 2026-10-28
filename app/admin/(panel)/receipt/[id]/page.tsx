@@ -25,7 +25,7 @@ export default async function Receipt({ params }: { params: Promise<{ id: string
         <header>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <Logo size={56} />
-            <div><b className="ps-name">{SITE.name}</b><small>{SITE.address} · {SITE.directorPhone}</small></div>
+            <div><b className="ps-name">{SITE.name}</b><small>{SITE.address} · {SITE.phone}</small></div>
           </div>
           <div className="ps-title"><span>Official receipt</span><b>{no}</b></div>
         </header>

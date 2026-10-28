@@ -5,6 +5,7 @@ import { useState } from "react";
 import Logo from "@/components/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { SITE, studentIdToEmail } from "@/lib/site";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function Login() {
   const router = useRouter();
@@ -51,11 +52,11 @@ export default function Login() {
           <h1>Student Portal</h1>
           <div className="sub">{SITE.name}</div>
           <div className="field"><label htmlFor="l-id">Student ID</label><input id="l-id" name="student_id" placeholder="e.g. 20260647" inputMode="numeric" autoComplete="username" autoCapitalize="characters" /></div>
-          <div className="field"><label htmlFor="l-pw">Password</label><input id="l-pw" name="password" type="password" autoComplete="current-password" /></div>
+          <div className="field"><label htmlFor="l-pw">Password</label><PasswordInput id="l-pw" name="password" autoComplete="current-password" /></div>
           {error && <div className="err" role="alert">{error}</div>}
           <button className="btn btn-orange" type="submit" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
           <p style={{ fontSize: ".85rem", color: "var(--muted)", textAlign: "center" }}>
-            Forgot your password? Call the office on {SITE.directorPhone}.
+            Forgot your password? Call the office on {SITE.phone}.
           </p>
         </form>
         <div style={{ textAlign: "center" }}><Link className="back" href="/">← Back to website</Link></div>

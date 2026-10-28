@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "sw
 export const metadata: Metadata = {
   metadataBase: new URL("https://manchilui.com"),
   title: { default: "Manchilui Training Institute", template: "%s · Manchilui Training Institute" },
-  description: "Diploma in Clearing and Forwarding in Eastrise, Chipata, Zambia. Six months of practical training in customs procedure, shipping and cargo handling.",
+  description: "Diploma in Clearing and Forwarding in Eastrise, Chipata, Zambia. One year of practical training in customs procedure, shipping and cargo handling.",
 };
 
 export const viewport: Viewport = { themeColor: "#0B1F4D", viewportFit: "cover" };

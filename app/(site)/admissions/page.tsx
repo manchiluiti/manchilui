@@ -22,7 +22,7 @@ export default function Admissions() {
             <div className="panel">
               <h2>How to Apply</h2>
               <div className="steps">
-                <div className="step"><h3>Apply online</h3><p>Fill in the form on this page and attach your Grade 12 results and NRC. Questions? Call the Director on {SITE.directorPhone}.</p></div>
+                <div className="step"><h3>Apply online</h3><p>Fill in the form on this page and attach your Grade 12 results and NRC. Questions? Call or WhatsApp us on {SITE.phone}.</p></div>
                 <div className="step"><h3>We review your application</h3><p>The admissions office checks your documents and calls you.</p></div>
                 <div className="step"><h3>Receive your acceptance letter</h3><p>It confirms your place, your start date and the fees.</p></div>
                 <div className="step"><h3>Register and get portal access</h3><p>Bring your original documents to the institute in Eastrise. You receive a student ID and password for the Student Portal.</p></div>

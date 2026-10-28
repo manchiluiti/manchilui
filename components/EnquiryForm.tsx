@@ -30,7 +30,7 @@ export default function EnquiryForm() {
     });
     if (dbError) {
       setStatus("idle");
-      setError("Your enquiry didn't go through. Check your connection and try again, or call the Director.");
+      setError("Your enquiry didn't go through. Check your connection and try again, or call the office.");
       return;
     }
     setFirstName(full_name.split(" ")[0]);

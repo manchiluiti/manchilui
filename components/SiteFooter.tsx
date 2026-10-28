@@ -39,7 +39,7 @@ export default function SiteFooter() {
           <ul>
             <li className="ci"><IconPin size={18} /><span>{SITE.address}</span></li>
             <li className="ci"><IconMail size={18} /><a href={`mailto:${SITE.email}`}>{SITE.email}</a></li>
-            <li className="ci"><IconPhone size={18} /><a href={`tel:${SITE.directorPhone.replace(/\s/g, "")}`}>{SITE.directorPhone}</a></li>
+            <li className="ci"><IconPhone size={18} /><a href={`tel:${SITE.phone.replace(/\s/g, "")}`}>{SITE.phone}</a></li>
           </ul>
         </div>
       </div>

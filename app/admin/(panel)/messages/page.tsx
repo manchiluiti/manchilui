@@ -12,7 +12,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const [{ data: staff }, { data: students }, { data: sent }, { data: reads }] = await Promise.all([
     supabase.from("staff").select("user_id,full_name,is_lecturer,is_management").order("full_name"),
     supabase.from("students").select("id,student_no,full_name,status,user_id").neq("status", "Withdrawn").order("student_no"),
-    supabase.from("messages").select("id,audience,student_id,staff_id,subject,body,created_at").order("created_at", { ascending: false }).limit(60),
+    supabase.from("messages").select("id,audience,student_id,staff_id,subject,body,created_at,sender_id,sender_name,category,module_code").order("created_at", { ascending: false }).limit(80),
     supabase.from("message_reads").select("message_id,user_id"),
   ]);
 
@@ -41,7 +41,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <div className="ahead"><div><p className="eyebrow" style={{ fontSize: ".72rem" }}>Messages</p><h1>Private messages</h1></div></div>
+      <div className="ahead"><div><p className="eyebrow" style={{ fontSize: ".72rem" }}>Messages</p><h1>Messages</h1></div></div>
       <p className="hint" style={{ marginBottom: 20, maxWidth: 720 }}>
         Messages are private: only the person they&apos;re sent to can read them. For a notice to every student, use Announcements and choose &quot;Students only&quot;.
       </p>
@@ -50,7 +50,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
         <section className="rec">
           <div className="rec-h"><h2>New message</h2></div>
           <div className="rec-b" style={{ paddingBlock: 20 }}>
-            <ActionForm action={sendMessage} submit="Send message" resetOnSuccess>
+            <ActionForm action={sendMessage} submit="Send (portal)" secondary={{ label: "Send + SMS", value: "sms" }} resetOnSuccess>
               <div className="field">
                 <label htmlFor="m-to">To</label>
                 <select id="m-to" name="to" defaultValue={to}>
@@ -68,12 +68,13 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
               </div>
               <div className="field"><label htmlFor="m-subj">Subject</label><input id="m-subj" name="subject" placeholder="Outstanding balance" /></div>
               <div className="field"><label htmlFor="m-body">Message</label><textarea id="m-body" name="body" rows={6} /></div>
+              <p className="hint">Send (portal) puts it in their portal or staff inbox. Send + SMS also texts it to their phone through Africa&apos;s Talking (uses SMS credit; long messages are shortened in the text).</p>
             </ActionForm>
           </div>
         </section>
 
         <section className="rec">
-          <div className="rec-h"><h2>Sent</h2></div>
+          <div className="rec-h"><h2>All messages</h2><span className="hint" style={{ margin: 0 }}>Includes lecturer comments to students</span></div>
           <div className="rec-b">
             {(sent ?? []).length === 0 && <p className="muted-row">No messages sent yet.</p>}
             {(sent ?? []).map((m) => {
@@ -82,8 +83,8 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
                 <details className="msg" key={m.id}>
                   <summary>
                     <div style={{ minWidth: 0 }}>
-                      <b>{m.subject}</b>
-                      <small>To {recipient(m)} · {when(m.created_at)}</small>
+                      <b>{m.category === "performance" && <span className="tag">Performance</span>}{m.subject}</b>
+                      <small>From {m.sender_name ?? "Office"}{m.module_code ? ` (${m.module_code})` : ""} to {recipient(m)} · {when(m.created_at)}</small>
                     </div>
                     <span className={`pill ${rc.ok ? "ok" : "wait"}`}>{rc.text}</span>
                   </summary>

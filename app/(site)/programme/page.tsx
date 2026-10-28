@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ManifestCard from "@/components/ManifestCard";
 import PageHeader from "@/components/PageHeader";
 import { IconCheck } from "@/components/Icons";
 
@@ -6,7 +7,7 @@ export const metadata = { title: "The Programme" };
 
 const FACTS = [
   ["Award", "Diploma"],
-  ["Duration", "6 months, full time"],
+  ["Duration", "1 year, full time"],
   ["Core modules", "7"],
   ["Assessment", "Continuous assessment and final exams"],
   ["Careers", "Clearing agent, freight forwarder, logistics clerk, own agency"],
@@ -15,9 +16,9 @@ const FACTS = [
 export default function Programme() {
   return (
     <div className="page-soft">
-      <PageHeader eyebrow="The programme" title="Diploma in Clearing & Forwarding" sub="Six months of focused, practical training in how goods move across borders." />
+      <PageHeader eyebrow="The programme" title="Diploma in Clearing & Forwarding" sub="One year of focused, practical training in how goods move across borders." />
       <section className="sec">
-        <div className="wrap grid2">
+        <div className="wrap grid2" style={{ alignItems: "start" }}>
           <div className="panel">
             <h2>What You Will Learn</h2>
             <p>The diploma covers the full journey of goods in trade: how cargo is shipped and stored, how customs procedures work, and how a clearing and forwarding business serves its clients. Communication, safety and entrepreneurship are taught alongside the technical work.</p>
@@ -28,6 +29,8 @@ export default function Programme() {
             </ul>
             <p style={{ color: "var(--muted)", fontSize: ".95rem" }}>The full module list and timetable are given to enrolled students in the Student Portal.</p>
           </div>
+          <div style={{ display: "grid", gap: 32, alignContent: "start" }}>
+          <div className="hero-visual fallback" style={{ height: "auto", minHeight: 420 }}><ManifestCard /></div>
           <div className="panel">
             <h2>At a Glance</h2>
             <div>
@@ -36,6 +39,7 @@ export default function Programme() {
               ))}
             </div>
             <Link className="btn btn-orange" href="/admissions">Apply for the Next Intake</Link>
+          </div>
           </div>
         </div>
       </section>

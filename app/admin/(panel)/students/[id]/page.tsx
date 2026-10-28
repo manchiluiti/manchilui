@@ -4,7 +4,8 @@ import ActionForm from "@/components/ActionForm";
 import GradeBadge from "@/components/GradeBadge";
 import { gradeFor, type GradeBand } from "@/lib/grades";
 import { kwacha, managementPage, mark, MODULE_STATUSES, PAY_METHODS, STATUSES } from "@/lib/admin";
-import { editPayment, recordPayment, removePayment, saveStudentMarks, sendBalanceReminder, setPassword, updateStudent } from "../../../actions";
+import { editPayment, recordPayment, removePayment, saveStudentMarks, sendBalanceReminder, setFees, setPassword, updateStudent } from "../../../actions";
+import PasswordInput from "@/components/PasswordInput";
 
 type ModRow = { module_code: string; status: string; ca_mark: number | null; exam_mark: number | null; final_mark: number | null; modules: { name: string; sort: number } };
 
@@ -13,19 +14,21 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
   const { created } = await searchParams;
   const { supabase } = await managementPage();
 
-  const [{ data: s }, { data: acc }, { data: mods }, { data: pays }, { data: scaleRows }] = await Promise.all([
+  const [{ data: s }, { data: acc }, { data: mods }, { data: pays }, { data: scaleRows }, { data: notes }] = await Promise.all([
     supabase.from("students").select("*").eq("id", id).maybeSingle(),
-    supabase.from("student_accounts").select("fees_balance,phone,remark").eq("student_id", id).maybeSingle(),
+    supabase.from("student_accounts").select("fees_balance,paid_before,phone,remark").eq("student_id", id).maybeSingle(),
     supabase.from("student_modules").select("module_code,status,ca_mark,exam_mark,final_mark,modules(name,sort)").eq("student_id", id),
     supabase.from("payments").select("id,receipt_no,amount,method,reference,paid_on").eq("student_id", id).order("paid_on", { ascending: false }).order("created_at", { ascending: false }),
     supabase.from("grade_scale").select("letter,min_mark,remark,is_pass"),
+    supabase.from("messages").select("id,subject,body,category,module_code,sender_name,created_at").eq("audience", "student").eq("student_id", id).order("created_at", { ascending: false }).limit(30),
   ]);
   const scale = (scaleRows ?? []) as GradeBand[];
   if (!s) notFound();
   const bal = Number(acc?.fees_balance ?? 0);
 
   const modules = ((mods ?? []) as unknown as ModRow[]).sort((a, b) => a.modules.sort - b.modules.sort);
-  const totalPaid = (pays ?? []).reduce((t, p) => t + Number(p.amount), 0);
+  const paidBefore = Number(acc?.paid_before ?? 0);
+  const totalPaid = paidBefore + (pays ?? []).reduce((t, p) => t + Number(p.amount), 0);
   const today = new Date().toISOString().slice(0, 10);
 
   return (
@@ -69,6 +72,16 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
               <div><div className="k">Paid</div><div className="v" style={{ color: "var(--ok)" }}>{kwacha(totalPaid)}</div></div>
               <div><div className="k">Balance</div><div className="v" style={{ color: bal > 0 ? "var(--warn)" : "var(--ok)" }}>{kwacha(bal)}</div></div>
             </div>
+            <details className="payedit" style={{ padding: "4px 24px 8px" }}>
+              <summary>Edit amount paid and balance</summary>
+              <ActionForm action={setFees.bind(null, id)} submit="Save fees" variant="navy">
+                <div className="fgrid">
+                  <div className="field"><label htmlFor="f-paid">Amount paid so far (K)</label><input id="f-paid" name="paid_so_far" inputMode="decimal" defaultValue={String(totalPaid)} /></div>
+                  <div className="field"><label htmlFor="f-bal">Balance (K)</label><input id="f-bal" name="balance" inputMode="decimal" defaultValue={String(bal)} /></div>
+                </div>
+                <p className="hint">Use this to set totals, for example money paid before the portal existed. For new money received, use Record a payment so it gets a receipt.</p>
+              </ActionForm>
+            </details>
             <div className="rec-b">
               {(pays ?? []).length === 0 && <p className="muted-row">No payments recorded yet.</p>}
               {(pays ?? []).map((p) => (
@@ -99,7 +112,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
             <div className="rec-h"><h2>Portal login</h2><span className={`pill ${s.user_id ? "ok" : "warn"}`}>{s.user_id ? "Active" : "No login"}</span></div>
             <div className="rec-b" style={{ paddingBlock: 20 }}>
               <ActionForm action={setPassword.bind(null, id)} submit={s.user_id ? "Reset / change password" : "Create login"} variant="navy" resetOnSuccess>
-                <div className="field"><label htmlFor="pw">New password</label><input id="pw" name="password" autoComplete="new-password" placeholder="Blank = reset to student ID" /></div>
+                <div className="field"><label htmlFor="pw">New password</label><PasswordInput id="pw" name="password" autoComplete="new-password" placeholder="Blank = reset to student ID" /></div>
                 <p className="hint">Leave blank to reset the password to <b>{s.student_no}</b>; the student must then choose a new one when they sign in.</p>
               </ActionForm>
             </div>
@@ -131,6 +144,20 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
           </section>
 
           <section className="rec">
+            <div className="rec-h"><h2>Lecturer comments and messages</h2><Link className="copy" href={`/admin/messages?to=student:${id}`}>New message</Link></div>
+            <div className="rec-b">
+              {(notes ?? []).length === 0 && <p className="muted-row">Nothing sent to this student yet.</p>}
+              {(notes ?? []).map((n) => (
+                <div className="msgcard" key={n.id}>
+                  <b>{n.category === "performance" && <span className="tag">Performance</span>}{n.subject}</b>
+                  <small>From {n.sender_name ?? "Office"}{n.module_code ? ` · ${n.module_code}` : ""} · {new Date(n.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lusaka" })}</small>
+                  <p className="abody">{n.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rec">
             <div className="rec-h"><h2>Details</h2></div>
             <div className="rec-b" style={{ paddingBlock: 20 }}>
               <ActionForm action={updateStudent.bind(null, id)} submit="Save details" variant="navy">
@@ -139,10 +166,9 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
                   <div className="field"><label htmlFor="d-phone">Phone</label><input id="d-phone" name="phone" defaultValue={acc?.phone ?? ""} /></div>
                   <div className="field"><label htmlFor="d-session">Session</label><input id="d-session" name="session" defaultValue={s.session} /></div>
                   <div className="field"><label htmlFor="d-status">Status</label><select id="d-status" name="status" defaultValue={s.status}>{STATUSES.map((st) => <option key={st}>{st}</option>)}</select></div>
-                  <div className="field"><label htmlFor="d-fees">Fees balance (K)</label><input id="d-fees" name="fees_balance" inputMode="decimal" defaultValue={String(bal)} /></div>
                   <div className="field full"><label htmlFor="d-remark">Remark shown to student</label><input id="d-remark" name="remark" defaultValue={acc?.remark ?? ""} placeholder="e.g. Balance due before final exams" /></div>
                 </div>
-                <p className="hint">Use Record a payment for money received. Edit the balance here only to add charges or correct a mistake.</p>
+                <p className="hint">Fees are edited in the Fees card.</p>
               </ActionForm>
             </div>
           </section>

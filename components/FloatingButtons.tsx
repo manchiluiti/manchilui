@@ -11,7 +11,7 @@ export default function FloatingButtons() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const wa = SITE.directorPhone.replace(/[^0-9]/g, "").replace(/^0/, "260");
+  const wa = SITE.phone.replace(/[^0-9]/g, "").replace(/^0/, "260");
   const text = encodeURIComponent("Hello Manchilui Training Institute, I would like to enquire about the Diploma in Clearing and Forwarding.");
 
   return (

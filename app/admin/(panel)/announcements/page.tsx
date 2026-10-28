@@ -2,6 +2,10 @@ import ActionForm from "@/components/ActionForm";
 import { managementPage } from "@/lib/admin";
 import { createAnnouncement, deleteAnnouncement } from "../../actions";
 
+const AUD_LABEL: Record<string, string> = {
+  public: "Everyone", website: "Website only", students: "Students only", staff: "Staff only", staff_students: "Staff and students", module: "Class:",
+};
+
 export default async function AnnouncementsAdmin() {
   const { supabase } = await managementPage();
   const { data } = await supabase.from("announcements").select("id,title,body,audience,posted_on,module_code").order("posted_on", { ascending: false }).order("created_at", { ascending: false });
@@ -19,7 +23,13 @@ export default async function AnnouncementsAdmin() {
               <div className="field"><label htmlFor="a-body">Message</label><textarea id="a-body" name="body" /></div>
               <div className="fgrid">
                 <div className="field"><label htmlFor="a-aud">Who sees it</label>
-                  <select id="a-aud" name="audience"><option value="public">Everyone (website + portal)</option><option value="students">Students only (portal)</option></select>
+                  <select id="a-aud" name="audience" defaultValue="public">
+                    <option value="public">Everyone (website, students and staff)</option>
+                    <option value="website">Website only</option>
+                    <option value="students">Students only (portal)</option>
+                    <option value="staff">Staff only</option>
+                    <option value="staff_students">Staff and students (not the website)</option>
+                  </select>
                 </div>
                 <div className="field"><label htmlFor="a-date">Date</label><input id="a-date" name="posted_on" type="date" defaultValue={today} /></div>
               </div>
@@ -34,7 +44,7 @@ export default async function AnnouncementsAdmin() {
               <div className="row" key={a.id} style={{ alignItems: "flex-start" }}>
                 <div style={{ minWidth: 0 }}>
                   <b>{a.title}</b>
-                  <small>{a.posted_on} · {a.audience === "public" ? "Everyone" : a.audience === "module" ? `${a.module_code} class` : "Students only"}</small>
+                  <small>{a.posted_on} · {AUD_LABEL[a.audience] ?? a.audience}{a.audience === "module" ? ` ${a.module_code}` : ""}</small>
                   <p className="abody">{a.body}</p>
                 </div>
                 <form action={deleteAnnouncement.bind(null, a.id)}><button className="del" type="submit">Delete</button></form>

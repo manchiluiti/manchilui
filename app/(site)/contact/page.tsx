@@ -6,7 +6,7 @@ import { SITE } from "@/lib/site";
 export const metadata = { title: "Contact" };
 
 export default function Contact() {
-  const tel = SITE.directorPhone.replace(/\s/g, "");
+  const tel = SITE.phone.replace(/\s/g, "");
   return (
     <div className="page-soft">
       <PageHeader eyebrow="Contact us" title="We'd Love to Hear From You." sub="Call, WhatsApp, email or visit us in Eastrise, Chipata." />
@@ -16,7 +16,7 @@ export default function Contact() {
             <h2>Get in Touch</h2>
             <div className="cinfo">
               <div className="ficon"><IconPhone size={24} /></div>
-              <div><div className="k">Director · Call / WhatsApp</div><a className="v" href={`tel:${tel}`}>{SITE.directorPhone}</a><br /><CopyButton text={SITE.directorPhone} label="Copy number" /></div>
+              <div><div className="k">Call / WhatsApp</div><a className="v" href={`tel:${tel}`}>{SITE.phone}</a><br /><CopyButton text={SITE.phone} label="Copy number" /></div>
             </div>
             <div className="cinfo">
               <div className="ficon"><IconMail size={24} /></div>

@@ -3,6 +3,7 @@ import ActionForm from "@/components/ActionForm";
 import { managementPage } from "@/lib/admin";
 import { nextStudentId } from "@/lib/site";
 import { createStudent } from "../../../actions";
+import PasswordInput from "@/components/PasswordInput";
 
 export default async function NewStudent() {
   const { supabase } = await managementPage();
@@ -24,7 +25,7 @@ export default async function NewStudent() {
               <div className="field"><label htmlFor="n-phone">Phone (optional)</label><input id="n-phone" name="phone" inputMode="tel" placeholder="+260" /></div>
               <div className="field"><label htmlFor="n-session">Session</label><input id="n-session" name="session" placeholder="January – June 2027" /></div>
               <div className="field"><label htmlFor="n-fees">Fees balance (K)</label><input id="n-fees" name="fees_balance" inputMode="decimal" defaultValue="0" /></div>
-              <div className="field"><label htmlFor="n-pw">Portal password (optional)</label><input id="n-pw" name="password" autoComplete="new-password" placeholder="Blank = student ID" /></div>
+              <div className="field"><label htmlFor="n-pw">Portal password (optional)</label><PasswordInput id="n-pw" name="password" autoComplete="new-password" placeholder="Blank = student ID" /></div>
             </div>
             <p className="hint">Leave the password blank and the student signs in with their ID as both username and password, then must choose their own password. All seven modules are added automatically.</p>
           </ActionForm>

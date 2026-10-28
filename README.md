@@ -20,7 +20,7 @@ Staff sign in at `/admin` (small "Staff" link in the site footer). Each staff me
 Final mark = CA 40% + Exam 60% (calculated by the database). Students see marks as soon as they are saved; every change records who made it and when.
 
 One-time setup, in order:
-1. Run `supabase/migrations/0002_payments.sql`, `0003_roles.sql`, `0004_grades.sql`, `0005_messages.sql`, `0006_payroll.sql` and `0007_operations.sql`, in that order, in the SQL Editor. Existing staff become Management.
+1. Run `supabase/migrations/0002_payments.sql`, `0003_roles.sql`, `0004_grades.sql`, `0005_messages.sql`, `0006_payroll.sql`, `0007_operations.sql`, `0008_student_ids.sql` and `0009_fees_messages_audiences.sql`, in that order, in the SQL Editor. Existing staff become Management.
 2. In Vercel, set `SUPABASE_SERVICE_ROLE_KEY` (Supabase > Project Settings > API > service_role). Server-only; used to create and reset logins.
 3. First manager only: create the login in Supabase (Authentication > Users > Add user, Auto Confirm), then run
    `insert into staff (user_id, full_name, is_management) select id, 'Full Name', true from auth.users where email = 'their@email.com';`
@@ -48,3 +48,7 @@ One-time setup, in order:
 - `CRON_SECRET` (any long random string; Vercel uses it to call the daily job in `vercel.json`, which also keeps the free Supabase project awake)
 - **Student logins**: by default a student's first password is their student ID; on first sign-in they must set their own (8+ characters, letters and numbers, not their ID). Students change it any time from the portal; staff from Admin > My account. "Reset password" with a blank box resets a student to their ID.
 - **Bulk import**: Admin > Students > Import from spreadsheet. CSV with columns Student ID, Full name, Session, Phone (optional), Fees balance (optional). Preview shows problems before anything is saved.
+- **Fees totals**: Admin > Students > Edit fees (all students) to set amount paid so far and balance for everyone on one screen; or Edit amount paid and balance on a student's page. Imports accept an optional Amount paid column.
+- **Messages by SMS**: Admin > Messages has Send (portal) and Send + SMS.
+- **Lecturer comments**: on each module page, lecturers send performance comments or messages to individual students; management sees all of them in Messages and on each student's page.
+- **Announcement audiences**: Everyone, Website only, Students only, Staff only, Staff and students.

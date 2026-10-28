@@ -26,7 +26,7 @@ export default function About() {
               <li><IconCheck /><div><b>Practical teaching</b>Classes are built around the paperwork you will handle at work.</div></li>
               <li><IconCheck /><div><b>Small classes</b>Lecturers know every student by name.</div></li>
               <li><IconCheck /><div><b>Close to the border</b>Learn where the trade happens, near Mwami.</div></li>
-              <li><IconCheck /><div><b>Six months to qualify</b>A focused diploma, not years of study.</div></li>
+              <li><IconCheck /><div><b>One year to qualify</b>A focused diploma, not years of study.</div></li>
             </ul>
           </div>
         </div>

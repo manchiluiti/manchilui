@@ -4,13 +4,14 @@ import { useState } from "react";
 import { importStudents, type ImportResult, type ImportRow } from "@/app/admin/actions";
 import { STUDENT_ID_HINT, STUDENT_ID_RE } from "@/lib/site";
 
-const COLS = ["student_no", "full_name", "session", "phone", "fees_balance"] as const;
+const COLS = ["student_no", "full_name", "session", "phone", "fees_balance", "paid"] as const;
 const ALIASES: Record<string, (typeof COLS)[number]> = {
   "student id": "student_no", "student no": "student_no", "student_no": "student_no", id: "student_no", "student number": "student_no",
   name: "full_name", "full name": "full_name", "full_name": "full_name", "student name": "full_name",
   session: "session", intake: "session",
   phone: "phone", "phone number": "phone", mobile: "phone",
   "fees balance": "fees_balance", "fees_balance": "fees_balance", balance: "fees_balance", fees: "fees_balance",
+  "amount paid": "paid", paid: "paid", "paid so far": "paid", "total paid": "paid",
 };
 
 /** Small CSV parser: handles quotes, commas and semicolons inside quotes, and Excel's BOM. */
@@ -63,7 +64,7 @@ export default function StudentImport() {
     const parsed: Parsed[] = grid.slice(1).map((r) => {
       const o: Record<string, string> = {};
       head.forEach((k, i) => { if (k) o[k] = (r[i] ?? "").trim(); });
-      const p: Parsed = { student_no: (o.student_no ?? "").toUpperCase(), full_name: o.full_name ?? "", session: o.session ?? "", phone: o.phone, fees_balance: o.fees_balance };
+      const p: Parsed = { student_no: (o.student_no ?? "").toUpperCase(), full_name: o.full_name ?? "", session: o.session ?? "", phone: o.phone, fees_balance: o.fees_balance, paid: o.paid };
       if (!STUDENT_ID_RE.test(p.student_no)) p.problem = `ID must be ${STUDENT_ID_HINT}`;
       else if (seen.has(p.student_no)) p.problem = "Duplicate ID in file";
       else if (p.full_name.length < 2) p.problem = "Name missing";
@@ -103,7 +104,7 @@ export default function StudentImport() {
         <div className="rec-h"><h2>1. Choose the file</h2></div>
         <div className="rec-b" style={{ paddingBlock: 20, display: "grid", gap: 12 }}>
           <input type="file" accept=".csv,text/csv" onChange={onFile} disabled={busy} aria-label="CSV file" />
-          <p className="hint">Columns: <b>Student ID</b>, <b>Full name</b>, <b>Session</b>, and optionally <b>Phone</b> and <b>Fees balance</b>. In Excel use File &gt; Save As &gt; CSV. Each student signs in with their ID as username and password, then must choose their own password.</p>
+          <p className="hint">Columns: <b>Student ID</b>, <b>Full name</b>, <b>Session</b>, and optionally <b>Phone</b>, <b>Amount paid</b> and <b>Fees balance</b>. In Excel use File &gt; Save As &gt; CSV. Each student signs in with their ID as username and password, then must choose their own password.</p>
           {error && <div className="err" role="alert">{error}</div>}
         </div>
       </section>

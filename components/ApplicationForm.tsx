@@ -71,7 +71,7 @@ export default function ApplicationForm() {
       documents,
     });
     setBusy(false);
-    if (insErr) return setError("Your application didn't go through. Check your connection and try again, or call the Director.");
+    if (insErr) return setError("Your application didn't go through. Check your connection and try again, or call the office.");
     setDone(full_name.split(" ")[0]);
     form.current?.reset();
   }

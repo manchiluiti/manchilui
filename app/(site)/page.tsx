@@ -17,7 +17,7 @@ const WHY = [
   { title: "Built around real documents", text: "Bills of lading, commercial invoices and customs declarations, practised in class.", Icon: IconFile },
   { title: "Small classes", text: "Every student gets direct attention from lecturers who know the trade.", Icon: IconUsers },
   { title: "On the trade corridor", text: "Chipata sits close to the Mwami border, where clearing agents are always needed.", Icon: IconTruck },
-  { title: "Career-ready in six months", text: "Finish ready to work for an agency, a transporter, or start your own.", Icon: IconBriefcase },
+  { title: "Career-ready in one year", text: "Finish ready to work for an agency, a transporter, or start your own.", Icon: IconBriefcase },
 ];
 
 export default async function Home() {
@@ -25,7 +25,7 @@ export default async function Home() {
   const { data } = await supabase
     .from("announcements")
     .select("id,title,body,posted_on")
-    .eq("audience", "public")
+    .in("audience", ["public", "website"])
     .order("posted_on", { ascending: false })
     .limit(3);
 
@@ -37,7 +37,7 @@ export default async function Home() {
             <p className="eyebrow">Practical • Focused • Career-ready</p>
             <h1>Your Career in Trade<br /><span>Starts Here.</span></h1>
             <p className="lede">
-              A six-month Diploma in Clearing and Forwarding in Chipata. Learn customs procedure,
+              A one-year Diploma in Clearing and Forwarding in Chipata. Learn customs procedure,
               shipping documents and cargo handling, the skills every border post and freight agency needs.
             </p>
             <div className="ctas">
@@ -52,7 +52,7 @@ export default async function Home() {
       <section className="stats">
         <div className="wrap">
           <div className="stat"><div className="v">Diploma</div><div className="k">Award</div></div>
-          <div className="stat"><div className="v">6 months</div><div className="k">Duration</div></div>
+          <div className="stat"><div className="v">1 year</div><div className="k">Duration</div></div>
           <div className="stat"><div className="v">7</div><div className="k">Core modules</div></div>
           <div className="stat"><div className="v">Chipata</div><div className="k">Campus</div></div>
         </div>

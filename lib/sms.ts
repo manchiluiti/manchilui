@@ -13,7 +13,7 @@ export function normalizePhone(raw: string | null | undefined): string | null {
 
 export const smsConfigured = () => !!(process.env.AT_USERNAME && process.env.AT_API_KEY);
 
-const officePhone = SITE.directorPhone.replace(/\s/g, "").replace("+260", "0");
+const officePhone = SITE.phone.replace(/\s/g, "").replace("+260", "0");
 const k = (n: number) => `K${Number(n).toLocaleString("en-ZM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const first = (name: string) => name.trim().split(/\s+/)[0];
 

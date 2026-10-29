@@ -507,3 +507,13 @@ a.fcard:hover .more { transform: translateX(8px); }
 .table tr.rowlink { cursor: pointer; }
 .table tr.rowlink:hover td { background: var(--peach); }
 .table tr.rowlink:focus-within td { background: var(--peach); }
+
+/* Student portal tabs and pages */
+.ptabs { margin-top: 18px; }
+.pmain { margin-top: -48px; padding-bottom: 48px; position: relative; }
+.pmain > .pgrid { margin-top: 0; padding-bottom: 0; }
+.ptiles > a { display: block; color: inherit; transition: background .15s; }
+.ptiles > a:hover { background: #EEF1F7; }
+.ptiles .more { display: block; margin-top: 6px; font-size: .8rem; font-weight: 600; color: var(--orange); }
+@media (max-width: 860px) { .ptiles { grid-template-columns: 1fr; } }
+.subhead { font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-2); padding: 14px 0 4px; }

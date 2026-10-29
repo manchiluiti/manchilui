@@ -499,3 +499,8 @@ a.fcard:hover .more { transform: translateX(8px); }
 .btn-sms { background: var(--wa); color: #fff; }
 .btn-sms:hover { background: #1EBE5A; }
 .tag { display: inline-block; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; background: var(--peach); color: var(--orange-h); margin-right: 6px; }
+.table tr.rowlink td { padding: 0; }
+.table tr.rowlink .cell-link { display: block; padding: 14px 16px; color: inherit; }
+.table tr.rowlink { cursor: pointer; }
+.table tr.rowlink:hover td { background: var(--peach); }
+.table tr.rowlink:focus-within td { background: var(--peach); }

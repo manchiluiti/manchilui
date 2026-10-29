@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import ActionForm from "@/components/ActionForm";
 import { kwacha, managementPage, STATUSES } from "@/lib/admin";
 import { remindAllOwing } from "../../actions";
@@ -13,6 +14,7 @@ export default async function Students({ searchParams }: { searchParams: Promise
   const term = q.trim().replace(/[%,()]/g, "");
   if (term) query = query.or(`full_name.ilike.%${term}%,student_no.ilike.%${term}%`);
   const { data, error } = await query;
+  if (term && data?.length === 1 && data[0].student_no.toLowerCase() === term.toLowerCase()) redirect(`/admin/students/${data[0].id}`);
 
   return (
     <>
@@ -35,7 +37,7 @@ export default async function Students({ searchParams }: { searchParams: Promise
       </details>
 
       <form className="filters" method="get">
-        <input name="q" defaultValue={q} placeholder="Search name or ID" aria-label="Search students" />
+        <input name="q" defaultValue={q} placeholder="Search name or ID (an exact ID opens the student)" aria-label="Search students" />
         <select name="status" defaultValue={status} aria-label="Filter by status">
           <option value="">All statuses</option>
           {STATUSES.map((s) => <option key={s}>{s}</option>)}
@@ -52,13 +54,19 @@ export default async function Students({ searchParams }: { searchParams: Promise
             {(data ?? []).map((s) => {
               const bal = Number((s.student_accounts as unknown as { fees_balance: number } | null)?.fees_balance ?? 0);
               return (
-              <tr key={s.id}>
-                <td><Link href={`/admin/students/${s.id}`} className="idlink">{s.student_no}</Link></td>
-                <td><Link href={`/admin/students/${s.id}`}>{s.full_name}</Link></td>
-                <td>{s.session}</td>
-                <td><span className={`pill ${pillFor(s.status)}`}>{s.status}</span></td>
-                <td className="num" style={{ color: bal > 0 ? "var(--warn)" : "var(--ok)" }}>{bal > 0 ? kwacha(bal) : "Paid"}</td>
-                <td>{s.user_id ? "✓" : <span style={{ color: "var(--warn)" }}>None</span>}</td>
+              <tr key={s.id} className="rowlink">
+                {[
+                  <span key="id" className="idlink">{s.student_no}</span>,
+                  <span key="n">{s.full_name}</span>,
+                  <span key="se">{s.session}</span>,
+                  <span key="st" className={`pill ${pillFor(s.status)}`}>{s.status}</span>,
+                  <span key="b" style={{ color: bal > 0 ? "var(--warn)" : "var(--ok)" }}>{bal > 0 ? kwacha(bal) : "Paid"}</span>,
+                  s.user_id ? <span key="l">✓</span> : <span key="l" style={{ color: "var(--warn)" }}>None</span>,
+                ].map((content, i) => (
+                  <td key={i} className={i === 4 ? "num" : undefined}>
+                    <Link href={`/admin/students/${s.id}`} className="cell-link" tabIndex={i === 0 ? 0 : -1} aria-label={i === 0 ? `Open ${s.full_name}` : undefined}>{content}</Link>
+                  </td>
+                ))}
               </tr>
               );
             })}

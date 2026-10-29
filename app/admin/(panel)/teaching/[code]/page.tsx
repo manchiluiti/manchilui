@@ -10,7 +10,7 @@ import { createClass, deleteClass, deleteNote, saveModuleMarks } from "../../../
 type Row = {
   student_id: string; status: string; ca_mark: number | null; exam_mark: number | null; final_mark: number | null;
   marks_updated_by: string | null; marks_updated_at: string | null;
-  students: { full_name: string; student_no: string; status: string } | null;
+  students: { full_name: string; student_no: string; status: string; archived_at: string | null } | null;
 };
 
 const size = (b: number | null) => (!b ? "" : b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
@@ -31,7 +31,7 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
 
   const since = new Date(Date.now() - 2 * 3600e3).toISOString();
   const [{ data: rows }, { data: notes }, { data: classes }, { data: people }, { data: lecturers }, { data: scaleRows }] = await Promise.all([
-    sb.from("student_modules").select("student_id,status,ca_mark,exam_mark,final_mark,marks_updated_by,marks_updated_at,students(full_name,student_no,status)").eq("module_code", code),
+    sb.from("student_modules").select("student_id,status,ca_mark,exam_mark,final_mark,marks_updated_by,marks_updated_at,students(full_name,student_no,status,archived_at)").eq("module_code", code),
     sb.from("notes").select("id,title,file_path,file_name,file_size,created_at,uploaded_by").eq("module_code", code).order("created_at", { ascending: false }),
     sb.from("classes").select("id,title,starts_at,duration_min,meeting_url,details").eq("module_code", code).gte("starts_at", since).order("starts_at"),
     sb.from("staff").select("user_id,full_name"),
@@ -42,7 +42,7 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
 
   const nameOf = (id: string | null) => (people ?? []).find((p) => p.user_id === id)?.full_name ?? "Staff";
   const students = ((rows ?? []) as unknown as Row[])
-    .filter((r) => r.students && r.students.status !== "Withdrawn")
+    .filter((r) => r.students && r.students.status !== "Withdrawn" && !r.students.archived_at)
     .sort((a, b) => a.students!.student_no.localeCompare(b.students!.student_no));
   const graded = students.filter((r) => r.final_mark !== null);
   const avg = graded.length ? Math.round((graded.reduce((t, r) => t + Number(r.final_mark), 0) / graded.length) * 10) / 10 : null;

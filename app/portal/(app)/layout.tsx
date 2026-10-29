@@ -41,7 +41,14 @@ export default async function PortalLayout({ children }: { children: React.React
           <PortalNav unread={unread.length} />
         </div>
       </div>
-      <div className="wrap pmain">{children}</div>
+      <div className="wrap pmain">
+        {student.archived_at && (
+          <div className="archived-note" style={{ position: "relative" }}>
+            Your intake ({student.session}) has finished, so this portal is now read-only. You can still view your results and fees. For a printed statement or receipt, visit the office or call {SITE.phone}.
+          </div>
+        )}
+        {children}
+      </div>
     </div>
   );
 }

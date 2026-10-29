@@ -7,7 +7,7 @@ export const maxDuration = 60;
 export default async function FeesPage() {
   const { supabase } = await managementPage();
   const [{ data: students }, { data: pays }] = await Promise.all([
-    supabase.from("students").select("id,student_no,full_name,session,status,student_accounts(fees_balance,paid_before)").neq("status", "Withdrawn").order("student_no"),
+    supabase.from("students").select("id,student_no,full_name,session,status,student_accounts(fees_balance,paid_before)").neq("status", "Withdrawn").is("archived_at", null).order("student_no"),
     supabase.from("payments").select("student_id,amount"),
   ]);
   const fee = await tuitionFee(supabase);

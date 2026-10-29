@@ -5,7 +5,7 @@ import GradeBadge from "@/components/GradeBadge";
 import { gradeFor, type GradeBand } from "@/lib/grades";
 import { kwacha, managementPage, mark, PAY_METHODS, STATUSES, tuitionFee } from "@/lib/admin";
 import LinkedFeeInputs from "@/components/LinkedFeeInputs";
-import { editPayment, recordPayment, removePayment, saveStudentMarks, sendBalanceReminder, setFees, setPassword, updateStudent, deleteStudent } from "../../../actions";
+import { editPayment, recordPayment, removePayment, saveStudentMarks, sendBalanceReminder, setFees, setPassword, updateStudent, deleteStudent, setStudentArchived } from "../../../actions";
 import PasswordInput from "@/components/PasswordInput";
 import DeleteStudentButton from "@/components/DeleteStudentButton";
 
@@ -40,10 +40,12 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
         <div>
           <p className="eyebrow" style={{ fontSize: ".72rem" }}><Link href="/admin/students">Students</Link> / {s.student_no}</p>
           <h1>{s.full_name}</h1>
+          {s.archived_at && <span className="pill wait" style={{ marginTop: 6 }}>Archived · {s.session}</span>}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link href={`/admin/messages?to=student:${id}`} className="btn btn-navy btn-sm">Message student</Link>
           <Link href={`/admin/students/${id}/statement`} className="btn btn-outline btn-sm">Statement of results</Link>
+          <form action={setStudentArchived.bind(null, id, !s.archived_at)}><button className="btn btn-outline btn-sm" type="submit">{s.archived_at ? "Restore to current" : "Archive student"}</button></form>
           <DeleteStudentButton action={deleteStudent.bind(null, id)} name={s.full_name} studentNo={s.student_no} />
         </div>
         <div className="bal">

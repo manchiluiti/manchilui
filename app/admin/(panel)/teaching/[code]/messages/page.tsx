@@ -4,7 +4,7 @@ import ActionForm from "@/components/ActionForm";
 import { fmtWhen, getStaff } from "@/lib/admin";
 import { deleteAnnouncement, deleteMessage, postModuleAnnouncement, sendStudentComment } from "../../../../actions";
 
-type Row = { student_id: string; students: { full_name: string; student_no: string; status: string } | null };
+type Row = { student_id: string; students: { full_name: string; student_no: string; status: string; archived_at: string | null } | null };
 
 export default async function ModuleMessagesPage({ params }: { params: Promise<{ code: string }> }) {
   const { code: raw } = await params;
@@ -21,14 +21,14 @@ export default async function ModuleMessagesPage({ params }: { params: Promise<{
   }
 
   const [{ data: rows }, { data: anns }, { data: people }, { data: comments }] = await Promise.all([
-    sb.from("student_modules").select("student_id,students(full_name,student_no,status)").eq("module_code", code),
+    sb.from("student_modules").select("student_id,students(full_name,student_no,status,archived_at)").eq("module_code", code),
     sb.from("announcements").select("id,title,body,posted_on,posted_by").eq("module_code", code).order("created_at", { ascending: false }).limit(20),
     sb.from("staff").select("user_id,full_name"),
     sb.from("messages").select("id,student_id,subject,body,category,created_at,sender_id,sender_name").eq("module_code", code).eq("audience", "student").order("created_at", { ascending: false }).limit(50),
   ]);
   const nameOf = (id: string | null) => (people ?? []).find((p) => p.user_id === id)?.full_name ?? "Staff";
   const students = ((rows ?? []) as unknown as Row[])
-    .filter((r) => r.students && r.students.status !== "Withdrawn")
+    .filter((r) => r.students && r.students.status !== "Withdrawn" && !r.students.archived_at)
     .sort((a, b) => a.students!.full_name.localeCompare(b.students!.full_name));
 
   return (

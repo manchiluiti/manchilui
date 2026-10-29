@@ -3,7 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export type PortalStudent = { id: string; student_no: string; full_name: string; programme: string; session: string; status: string };
+export type PortalStudent = { id: string; student_no: string; full_name: string; programme: string; session: string; status: string; archived_at: string | null };
 export type ModuleRow = { module_code: string; status: string; ca_mark: number | null; exam_mark: number | null; final_mark: number | null; modules: { name: string; sort: number } };
 
 /** Signed-in student and their own record (row level security limits every query to them). Shared by the portal layout and pages. */
@@ -12,7 +12,7 @@ export const getPortal = cache(async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/portal/login");
   if (user.app_metadata?.must_change_password) redirect("/portal/password");
-  const { data: student } = await supabase.from("students").select("id,student_no,full_name,programme,session,status").eq("user_id", user.id).maybeSingle<PortalStudent>();
+  const { data: student } = await supabase.from("students").select("id,student_no,full_name,programme,session,status,archived_at").eq("user_id", user.id).maybeSingle<PortalStudent>();
   return { supabase, user, student };
 });
 

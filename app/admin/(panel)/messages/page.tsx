@@ -11,7 +11,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
 
   const [{ data: staff }, { data: students }, { data: sent }, { data: reads }] = await Promise.all([
     supabase.from("staff").select("user_id,full_name,is_lecturer,is_management").order("full_name"),
-    supabase.from("students").select("id,student_no,full_name,status,user_id").neq("status", "Withdrawn").order("student_no"),
+    supabase.from("students").select("id,student_no,full_name,status,user_id").neq("status", "Withdrawn").is("archived_at", null).order("student_no"),
     supabase.from("messages").select("id,audience,student_id,staff_id,subject,body,created_at,sender_id,sender_name,category,module_code").order("created_at", { ascending: false }).limit(80),
     supabase.from("message_reads").select("message_id,user_id"),
   ]);

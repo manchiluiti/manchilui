@@ -4,13 +4,15 @@ import { kwacha, managementPage } from "@/lib/admin";
 export default async function Dashboard() {
   const { supabase, name } = await managementPage();
   const [{ data: students }, { data: enq }, { data: pays }, { count: newEnq }] = await Promise.all([
-    supabase.from("students").select("status,student_accounts(fees_balance)"),
+    supabase.from("students").select("status,archived_at,student_accounts(fees_balance)"),
     supabase.from("enquiries").select("id,full_name,phone,preferred_intake,created_at,handled").order("created_at", { ascending: false }).limit(5),
     supabase.from("payments").select("amount,paid_on,students(full_name,student_no)").order("created_at", { ascending: false }).limit(5),
     supabase.from("enquiries").select("id", { count: "exact", head: true }).eq("handled", false),
   ]);
 
-  const all = (students ?? []).map((s) => ({ status: s.status, bal: Number((s.student_accounts as unknown as { fees_balance: number } | null)?.fees_balance ?? 0) }));
+  const everyone = (students ?? []).map((s) => ({ status: s.status, archived: !!s.archived_at, bal: Number((s.student_accounts as unknown as { fees_balance: number } | null)?.fees_balance ?? 0) }));
+  const all = everyone.filter((s) => !s.archived);
+  const oldOwed = everyone.filter((s) => s.archived && s.bal > 0);
   const active = all.filter((s) => s.status === "Registered").length;
   const owed = all.reduce((t, s) => t + Math.max(0, s.bal), 0);
   const owing = all.filter((s) => s.bal > 0).length;
@@ -24,8 +26,8 @@ export default async function Dashboard() {
       </div>
 
       <div className="tiles">
-        <div className="tile"><div className="k">Students</div><div className="v">{all.length}</div><div className="s">{active} registered</div></div>
-        <div className="tile"><div className="k">Fees outstanding</div><div className="v">{kwacha(owed)}</div><div className="s">{owing} student{owing === 1 ? "" : "s"} owing</div></div>
+        <div className="tile"><div className="k">Current students</div><div className="v">{all.length}</div><div className="s">{active} registered</div></div>
+        <div className="tile"><div className="k">Fees outstanding</div><div className="v">{kwacha(owed)}</div><div className="s">{owing} student{owing === 1 ? "" : "s"} owing</div>{oldOwed.length > 0 && <Link className="s copy" href="/admin/students?view=owing">+ {kwacha(oldOwed.reduce((t, s) => t + s.bal, 0))} from archived intakes</Link>}</div>
         <div className="tile"><div className="k">New enquiries</div><div className="v">{newEnq ?? 0}</div><div className="s">waiting for a call back</div></div>
       </div>
 

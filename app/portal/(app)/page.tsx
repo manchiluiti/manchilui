@@ -11,8 +11,8 @@ export default async function PortalDashboard() {
     feeSummary(supabase, student.id),
     myModules(supabase, student.id),
     unreadMessages(supabase, user.id, student.id),
-    supabase.from("announcements").select("id,title,body,posted_on,module_code").in("audience", ["public", "students", "staff_students", "module"]).order("posted_on", { ascending: false }).order("created_at", { ascending: false }).limit(5),
-    supabase.from("classes").select("id,module_code,title,starts_at,duration_min,meeting_url,details").gte("starts_at", since).order("starts_at").limit(5),
+    student.archived_at ? Promise.resolve({ data: [] }) : supabase.from("announcements").select("id,title,body,posted_on,module_code").in("audience", ["public", "students", "staff_students", "module"]).order("posted_on", { ascending: false }).order("created_at", { ascending: false }).limit(5),
+    student.archived_at ? Promise.resolve({ data: [] }) : supabase.from("classes").select("id,module_code,title,starts_at,duration_min,meeting_url,details").gte("starts_at", since).order("starts_at").limit(5),
   ]);
   const done = modules.filter((m) => m.status === "Completed").length;
   const modName = (c: string) => modules.find((m) => m.module_code === c)?.modules.name ?? c;

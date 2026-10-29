@@ -1097,3 +1097,49 @@ export async function deleteStudent(studentId: string): Promise<{ error?: string
   refresh();
   redirect(`/admin/students?deleted=${encodeURIComponent(name)}`);
 }
+
+/* =================== Intakes and archiving (management) =================== */
+
+export async function archiveIntake(session: string, _: FormState): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const { data, error } = await supabase.from("students").update({ archived_at: new Date().toISOString() }).eq("session", session).is("archived_at", null).select("id");
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: `${data?.length ?? 0} student(s) in ${session} archived.` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function restoreIntake(session: string, _: FormState): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const { data, error } = await supabase.from("students").update({ archived_at: null }).eq("session", session).not("archived_at", "is", null).select("id");
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: `${data?.length ?? 0} student(s) in ${session} brought back to current.` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function renameIntake(oldSession: string, _: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const name = str(fd, "session");
+    if (name.length < 3) return { error: "Enter the intake name, e.g. January 2027 intake." };
+    const { data, error } = await supabase.from("students").update({ session: name }).eq("session", oldSession).select("id");
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: `${data?.length ?? 0} student(s) moved to "${name}".` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function setStudentArchived(studentId: string, archive: boolean) {
+  const { supabase } = await requireManagement();
+  await supabase.from("students").update({ archived_at: archive ? new Date().toISOString() : null }).eq("id", studentId);
+  refresh();
+}

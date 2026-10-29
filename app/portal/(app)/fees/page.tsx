@@ -20,7 +20,7 @@ export default async function PortalFees() {
             <div><b>{kwacha(p.amount)}</b><small>{p.paid_on} · {p.method}{p.reference ? ` · Ref ${p.reference}` : ""}</small></div>
           </div>
         ))}
-        {f.before > 0 && <div className="row"><div><b>{kwacha(f.before)}</b><small>Paid before the portal started</small></div></div>}
+        {f.before > 0 && <div className="row"><div><b>{kwacha(f.before)}</b></div></div>}
         {f.pays.length === 0 && !f.before && <p className="muted-row">No payments recorded yet.</p>}
         <p className="hint" style={{ padding: "8px 0 12px" }}>Receipts are issued at the office. If a payment is missing, bring your receipt to the office.</p>
       </div>

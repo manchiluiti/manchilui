@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 type Tab = { href: string; label: string; mgmt?: boolean; teach?: boolean; lect?: boolean; all?: boolean };
 const TABS: Tab[] = [
@@ -22,10 +23,15 @@ const TABS: Tab[] = [
 
 export default function AdminNav({ isManagement, isLecturer, newEnquiries, unread }: { isManagement: boolean; isLecturer: boolean; newEnquiries: number; unread: number }) {
   const path = usePathname();
+  const ref = useRef<HTMLElement>(null);
+  // On phones the bar scrolls sideways; keep the current tab in view.
+  useEffect(() => {
+    ref.current?.querySelector("a.on")?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [path]);
   const on = (h: string) => (h === "/admin" ? path === "/admin" : path === h || path.startsWith(h + "/"));
   const tabs = TABS.filter((t) => (t.mgmt && isManagement) || (t.teach && (isLecturer || isManagement)) || (t.lect && isLecturer) || !!t.all);
   return (
-    <nav className="atabs" aria-label="Admin">
+    <nav ref={ref} className="atabs" aria-label="Admin">
       {tabs.map((t) => (
         <Link key={t.href} href={t.href} className={on(t.href) ? "on" : ""}>
           {t.label}

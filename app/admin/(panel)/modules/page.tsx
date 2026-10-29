@@ -47,7 +47,7 @@ export default async function ModulesPage() {
             <ActionForm action={addModule} submit="Add module" resetOnSuccess>
               <div className="field"><label htmlFor="am-code">Code</label><input id="am-code" name="code" placeholder="CF108" autoCapitalize="characters" /></div>
               <div className="field"><label htmlFor="am-name">Name</label><input id="am-name" name="name" placeholder="Freight Insurance" /></div>
-              <p className="hint">It&apos;s added to every student as Not started, at the end of the list.</p>
+              <p className="hint">It&apos;s added to every student as In progress, at the end of the list.</p>
             </ActionForm>
           </div>
         </section>

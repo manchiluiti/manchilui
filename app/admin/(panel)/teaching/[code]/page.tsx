@@ -4,8 +4,8 @@ import ActionForm from "@/components/ActionForm";
 import GradeBadge from "@/components/GradeBadge";
 import NoteUpload from "@/components/NoteUpload";
 import { gradeFor, type GradeBand } from "@/lib/grades";
-import { fmtWhen, getStaff, mark, MODULE_STATUSES } from "@/lib/admin";
-import { createClass, deleteAnnouncement, deleteClass, deleteMessage, deleteNote, postModuleAnnouncement, saveModuleMarks, sendStudentComment } from "../../../actions";
+import { fmtWhen, getStaff, mark } from "@/lib/admin";
+import { createClass, deleteClass, deleteNote, saveModuleMarks } from "../../../actions";
 
 type Row = {
   student_id: string; status: string; ca_mark: number | null; exam_mark: number | null; final_mark: number | null;
@@ -30,15 +30,13 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
   }
 
   const since = new Date(Date.now() - 2 * 3600e3).toISOString();
-  const [{ data: rows }, { data: notes }, { data: classes }, { data: anns }, { data: people }, { data: lecturers }, { data: scaleRows }, { data: comments }] = await Promise.all([
+  const [{ data: rows }, { data: notes }, { data: classes }, { data: people }, { data: lecturers }, { data: scaleRows }] = await Promise.all([
     sb.from("student_modules").select("student_id,status,ca_mark,exam_mark,final_mark,marks_updated_by,marks_updated_at,students(full_name,student_no,status)").eq("module_code", code),
     sb.from("notes").select("id,title,file_path,file_name,file_size,created_at,uploaded_by").eq("module_code", code).order("created_at", { ascending: false }),
     sb.from("classes").select("id,title,starts_at,duration_min,meeting_url,details").eq("module_code", code).gte("starts_at", since).order("starts_at"),
-    sb.from("announcements").select("id,title,body,posted_on,posted_by").eq("module_code", code).order("created_at", { ascending: false }).limit(10),
     sb.from("staff").select("user_id,full_name"),
     sb.from("module_lecturers").select("lecturer_id").eq("module_code", code),
     sb.from("grade_scale").select("letter,min_mark,remark,is_pass"),
-    sb.from("messages").select("id,student_id,subject,body,category,created_at,sender_id,sender_name").eq("module_code", code).eq("audience", "student").order("created_at", { ascending: false }).limit(30),
   ]);
   const scale = (scaleRows ?? []) as GradeBand[];
 
@@ -65,6 +63,7 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
           <p className="eyebrow" style={{ fontSize: ".72rem" }}><Link href="/admin/teaching">Teaching</Link> / {mod.code}</p>
           <h1>{mod.name}</h1>
           <p className="hint" style={{ marginTop: 4 }}>Lecturer: {teacherNames}</p>
+          <Link className="btn btn-navy btn-sm" style={{ marginTop: 12 }} href={`/admin/teaching/${code}/messages`}>Comments &amp; class messages →</Link>
         </div>
         <div className="bal">
           <span className="k">Class average</span>
@@ -76,7 +75,7 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
       <section className="rec">
         <div className="rec-h">
           <h2>Marks</h2>
-          <span className="hint" style={{ margin: 0 }}>Out of 100 · Final = CA 40% + Exam 60% · Students see marks once saved</span>
+          <span className="hint" style={{ margin: 0 }}>Out of 100 · Final = CA 40% + Exam 60% · Status updates itself: Completed once CA and exam are both in</span>
         </div>
         <div className="rec-b" style={{ paddingBlock: 12 }}>
           {students.length === 0 ? (
@@ -95,11 +94,7 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
                           <b>{r.students!.full_name}</b>
                           <small className="sub">{r.students!.student_no}{r.marks_updated_at ? ` · edited by ${nameOf(r.marks_updated_by)}, ${new Date(r.marks_updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Africa/Lusaka" })}` : ""}</small>
                         </td>
-                        <td>
-                          <select name={`status_${r.student_id}`} defaultValue={r.status} aria-label={`${r.students!.full_name} status`}>
-                            {MODULE_STATUSES.map((s) => <option key={s}>{s}</option>)}
-                          </select>
-                        </td>
+                        <td><span className={`pill ${r.status === "Completed" ? "ok" : "warn"}`}>{r.status === "Not started" ? "In progress" : r.status}</span></td>
                         <td className="num"><input name={`ca_${r.student_id}`} defaultValue={r.ca_mark ?? ""} inputMode="decimal" placeholder="–" aria-label={`${r.students!.full_name} CA`} /></td>
                         <td className="num"><input name={`exam_${r.student_id}`} defaultValue={r.exam_mark ?? ""} inputMode="decimal" placeholder="–" aria-label={`${r.students!.full_name} exam`} /></td>
                         <td className="num final">{mark(r.final_mark)}</td>
@@ -181,66 +176,6 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
             </div>
           </section>
 
-          <section className="rec">
-            <div className="rec-h"><h2>Comment on a student</h2></div>
-            <div className="rec-b" style={{ paddingBlock: 20 }}>
-              <ActionForm action={sendStudentComment.bind(null, code)} submit="Send to student" resetOnSuccess>
-                <div className="fgrid">
-                  <div className="field"><label htmlFor="sc-st">Student</label>
-                    <select id="sc-st" name="student_id" defaultValue="">
-                      <option value="" disabled>Choose…</option>
-                      {students.map((r) => <option key={r.student_id} value={r.student_id}>{r.students!.full_name} · {r.students!.student_no}</option>)}
-                    </select>
-                  </div>
-                  <div className="field"><label htmlFor="sc-cat">Type</label>
-                    <select id="sc-cat" name="category" defaultValue="performance"><option value="performance">Performance comment / review</option><option value="message">General message</option></select>
-                  </div>
-                </div>
-                <div className="field"><label htmlFor="sc-subj">Title</label><input id="sc-subj" name="subject" placeholder="Mid-term progress" /></div>
-                <div className="field"><label htmlFor="sc-body">Comment</label><textarea id="sc-body" name="body" placeholder="Strong on documentation; needs to revise tariff classification before the exam." /></div>
-                <p className="hint">The student sees this in their portal. Management can read every comment.</p>
-              </ActionForm>
-            </div>
-            <div className="rec-b" style={{ borderTop: "1px solid #F3F4F6" }}>
-              {(comments ?? []).length === 0 && <p className="muted-row">No comments sent in this module yet.</p>}
-              {(comments ?? []).map((c) => {
-                const st = students.find((r) => r.student_id === c.student_id)?.students;
-                return (
-                  <div className="row" key={c.id} style={{ alignItems: "flex-start" }}>
-                    <div style={{ minWidth: 0 }}>
-                      <b>{c.category === "performance" && <span className="tag">Performance</span>}{c.subject}</b>
-                      <small>To {st?.full_name ?? "student"} · from {c.sender_name ?? nameOf(c.sender_id)} · {fmtWhen(c.created_at)}</small>
-                      <p className="abody">{c.body}</p>
-                    </div>
-                    {(staff.isManagement || c.sender_id === staff.user.id) && (
-                      <form action={deleteMessage.bind(null, c.id)}><button className="del" type="submit">Delete</button></form>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="rec">
-            <div className="rec-h"><h2>Message your class</h2></div>
-            <div className="rec-b" style={{ paddingBlock: 20 }}>
-              <ActionForm action={postModuleAnnouncement.bind(null, code)} submit="Post to students" resetOnSuccess>
-                <div className="field"><label htmlFor="m-title">Title</label><input id="m-title" name="title" placeholder="Test on Friday" /></div>
-                <div className="field"><label htmlFor="m-body">Message</label><textarea id="m-body" name="body" /></div>
-              </ActionForm>
-            </div>
-            <div className="rec-b" style={{ borderTop: "1px solid #F3F4F6" }}>
-              {(anns ?? []).length === 0 && <p className="muted-row">No messages posted yet.</p>}
-              {(anns ?? []).map((a) => (
-                <div className="row" key={a.id} style={{ alignItems: "flex-start" }}>
-                  <div style={{ minWidth: 0 }}><b>{a.title}</b><small>{a.posted_on} · {nameOf(a.posted_by)}</small><p className="abody">{a.body}</p></div>
-                  {(staff.isManagement || a.posted_by === staff.user.id) && (
-                    <form action={deleteAnnouncement.bind(null, a.id)}><button className="del" type="submit">Delete</button></form>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
         </div>
       </div>
     </>

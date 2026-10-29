@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import ActionForm from "@/components/ActionForm";
 import GradeBadge from "@/components/GradeBadge";
 import { gradeFor, type GradeBand } from "@/lib/grades";
-import { kwacha, managementPage, mark, MODULE_STATUSES, PAY_METHODS, STATUSES, tuitionFee } from "@/lib/admin";
+import { kwacha, managementPage, mark, PAY_METHODS, STATUSES, tuitionFee } from "@/lib/admin";
 import LinkedFeeInputs from "@/components/LinkedFeeInputs";
 import { editPayment, recordPayment, removePayment, saveStudentMarks, sendBalanceReminder, setFees, setPassword, updateStudent } from "../../../actions";
 import PasswordInput from "@/components/PasswordInput";
@@ -129,9 +129,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
                     <div className="modrow marks" key={m.module_code}>
                       <input type="hidden" name="code" value={m.module_code} />
                       <div className="mname"><span className="code">{m.module_code}</span>{m.modules.name}</div>
-                      <select name={`status_${m.module_code}`} defaultValue={m.status} aria-label={`${m.modules.name} status`}>
-                        {MODULE_STATUSES.map((st) => <option key={st}>{st}</option>)}
-                      </select>
+                      <span><span className={`pill ${m.status === "Completed" ? "ok" : "warn"}`}>{m.status === "Not started" ? "In progress" : m.status}</span></span>
                       <input name={`ca_${m.module_code}`} defaultValue={m.ca_mark ?? ""} inputMode="decimal" placeholder="–" aria-label={`${m.modules.name} CA mark`} />
                       <input name={`exam_${m.module_code}`} defaultValue={m.exam_mark ?? ""} inputMode="decimal" placeholder="–" aria-label={`${m.modules.name} exam mark`} />
                       <span className="final">{mark(m.final_mark)} <GradeBadge grade={gradeFor(m.final_mark, scale)} /></span>

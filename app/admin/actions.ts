@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
-  adminAuth, MODULE_STATUSES, PAY_METHODS, requireManagement, requireModuleAccess, requireStaff, STATUSES, tuitionFee,
+  adminAuth, PAY_METHODS, requireManagement, requireModuleAccess, requireStaff, STATUSES, tuitionFee,
 } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { STUDENT_EMAIL_DOMAIN, STUDENT_ID_HINT, STUDENT_ID_RE, studentIdToEmail } from "@/lib/site";
@@ -152,14 +152,14 @@ export async function setPassword(id: string, _: FormState, fd: FormData): Promi
 
 /* =================== Marks (lecturers for their modules, management for all) =================== */
 
-type MarkRow = { student_id: string; module_code: string; ca_mark: number | null; exam_mark: number | null; status: string };
+type MarkRow = { student_id: string; module_code: string; ca_mark: number | null; exam_mark: number | null };
 
 async function saveMarkRows(rows: MarkRow[], supabase: Awaited<ReturnType<typeof createClient>>): Promise<FormState> {
   let changed = 0;
   for (const r of rows) {
     const { data, error } = await supabase
       .from("student_modules")
-      .update({ ca_mark: r.ca_mark, exam_mark: r.exam_mark, status: r.status })
+      .update({ ca_mark: r.ca_mark, exam_mark: r.exam_mark }) // status is set by the database: Completed once both marks are in
       .eq("student_id", r.student_id)
       .eq("module_code", r.module_code)
       .select("student_id");
@@ -187,8 +187,7 @@ export async function saveModuleMarks(code: string, _: FormState, fd: FormData):
       const ex = readMark(fd, `exam_${sid}`, `${name}'s exam`);
       if (typeof ca === "string") return { error: ca };
       if (typeof ex === "string") return { error: ex };
-      const status = str(fd, `status_${sid}`);
-      rows.push({ student_id: sid, module_code: code, ca_mark: ca, exam_mark: ex, status: MODULE_STATUSES.includes(status as never) ? status : "In progress" });
+      rows.push({ student_id: sid, module_code: code, ca_mark: ca, exam_mark: ex });
     }
     const err = await saveMarkRows(rows, supabase);
     if (err) return err;
@@ -209,8 +208,7 @@ export async function saveStudentMarks(studentId: string, _: FormState, fd: Form
       const ex = readMark(fd, `exam_${code}`, `${code} exam`);
       if (typeof ca === "string") return { error: ca };
       if (typeof ex === "string") return { error: ex };
-      const status = str(fd, `status_${code}`);
-      rows.push({ student_id: studentId, module_code: code, ca_mark: ca, exam_mark: ex, status: MODULE_STATUSES.includes(status as never) ? status : "Not started" });
+      rows.push({ student_id: studentId, module_code: code, ca_mark: ca, exam_mark: ex });
     }
     const err = await saveMarkRows(rows, supabase);
     if (err) return err;
@@ -1054,7 +1052,7 @@ export async function addModule(_: FormState, fd: FormData): Promise<FormState> 
     const { error } = await supabase.from("modules").insert({ code, name, sort: (last?.[0]?.sort ?? 0) + 1 });
     if (error) return { error: error.code === "23505" ? `${code} already exists.` : error.message };
     refresh();
-    return { ok: `${code} added. Every student now has it as Not started. Assign a lecturer on the Staff page.` };
+    return { ok: `${code} added. Every student is now registered for it (In progress). Assign a lecturer on the Staff page.` };
   } catch (e) {
     return fail(e);
   }

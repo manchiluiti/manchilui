@@ -23,7 +23,7 @@ begin
   end loop;
 end $$;
 
--- 2. A new module is added to every existing student as "Not started".
+-- 2. A new module is added to every existing student (status set automatically).
 create or replace function public.add_module_to_students()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin

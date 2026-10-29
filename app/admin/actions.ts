@@ -1020,3 +1020,62 @@ export async function bulkSetFees(rows: FeeRow[]): Promise<{ saved: number; erro
   refresh();
   return { saved, errors };
 }
+
+/* =================== Modules (management) =================== */
+
+const MODULE_CODE_RE = /^[A-Z0-9-]{2,12}$/;
+
+export async function saveModule(oldCode: string, _: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const code = str(fd, "code").toUpperCase().replace(/\s+/g, "");
+    const name = str(fd, "name");
+    const sort = Number(str(fd, "sort"));
+    if (!MODULE_CODE_RE.test(code)) return { error: "Code: 2–12 capital letters, numbers or dashes, e.g. CF104." };
+    if (name.length < 2) return { error: "Enter the module name." };
+    if (!Number.isInteger(sort) || sort < 0 || sort > 99) return { error: "Order must be a whole number, e.g. 3." };
+    const { error } = await supabase.from("modules").update({ code, name, sort }).eq("code", oldCode);
+    if (error) return { error: error.code === "23505" ? `Another module already uses ${code}.` : error.message };
+    refresh();
+    return { ok: code !== oldCode ? `Saved. ${oldCode} is now ${code}; marks, notes, classes and lecturers moved with it.` : "Saved." };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function addModule(_: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const code = str(fd, "code").toUpperCase().replace(/\s+/g, "");
+    const name = str(fd, "name");
+    if (!MODULE_CODE_RE.test(code)) return { error: "Code: 2–12 capital letters, numbers or dashes, e.g. CF108." };
+    if (name.length < 2) return { error: "Enter the module name." };
+    const { data: last } = await supabase.from("modules").select("sort").order("sort", { ascending: false }).limit(1);
+    const { error } = await supabase.from("modules").insert({ code, name, sort: (last?.[0]?.sort ?? 0) + 1 });
+    if (error) return { error: error.code === "23505" ? `${code} already exists.` : error.message };
+    refresh();
+    return { ok: `${code} added. Every student now has it as Not started. Assign a lecturer on the Staff page.` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function removeModule(code: string, _: FormState): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const [{ count: marks }, { count: notes }] = await Promise.all([
+      supabase.from("student_modules").select("student_id", { count: "exact", head: true }).eq("module_code", code).or("ca_mark.not.is.null,exam_mark.not.is.null"),
+      supabase.from("notes").select("id", { count: "exact", head: true }).eq("module_code", code),
+    ]);
+    if ((marks ?? 0) > 0) return { error: `${code} has marks for ${marks} student(s), so it can't be removed. Rename it instead.` };
+    if ((notes ?? 0) > 0) return { error: `${code} has ${notes} note(s). Delete the notes first, or rename the module instead.` };
+    const { error: e1 } = await supabase.from("student_modules").delete().eq("module_code", code);
+    if (e1) return { error: e1.message };
+    const { error } = await supabase.from("modules").delete().eq("code", code);
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: `${code} removed.` };
+  } catch (e) {
+    return fail(e);
+  }
+}

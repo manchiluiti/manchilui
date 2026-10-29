@@ -22,6 +22,7 @@ const WHY = [
 
 export default async function Home() {
   const supabase = await createClient();
+  const { count: moduleCount } = await supabase.from("modules").select("code", { count: "exact", head: true });
   const { data } = await supabase
     .from("announcements")
     .select("id,title,body,posted_on")
@@ -53,7 +54,7 @@ export default async function Home() {
         <div className="wrap">
           <div className="stat"><div className="v">Diploma</div><div className="k">Award</div></div>
           <div className="stat"><div className="v">1 year</div><div className="k">Duration</div></div>
-          <div className="stat"><div className="v">7</div><div className="k">Core modules</div></div>
+          <div className="stat"><div className="v">{moduleCount ?? 7}</div><div className="k">Core modules</div></div>
           <div className="stat"><div className="v">Chipata</div><div className="k">Campus</div></div>
         </div>
       </section>

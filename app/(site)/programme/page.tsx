@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import ManifestCard from "@/components/ManifestCard";
 import PageHeader from "@/components/PageHeader";
 import { IconCheck } from "@/components/Icons";
@@ -8,12 +9,15 @@ export const metadata = { title: "The Programme" };
 const FACTS = [
   ["Award", "Diploma"],
   ["Duration", "1 year, full time"],
-  ["Core modules", "7"],
   ["Assessment", "Continuous assessment and final exams"],
   ["Careers", "Clearing agent, freight forwarder, logistics clerk, own agency"],
 ];
 
-export default function Programme() {
+
+export default async function Programme() {
+  const supabase = await createClient();
+  const { count } = await supabase.from("modules").select("code", { count: "exact", head: true });
+  const facts = [...FACTS.slice(0, 2), ["Core modules", String(count ?? 7)], ...FACTS.slice(2)];
   return (
     <div className="page-soft">
       <PageHeader eyebrow="The programme" title="Diploma in Clearing & Forwarding" sub="One year of focused, practical training in how goods move across borders." />
@@ -34,7 +38,7 @@ export default function Programme() {
           <div className="panel">
             <h2>At a Glance</h2>
             <div>
-              {FACTS.map(([k, v]) => (
+              {facts.map(([k, v]) => (
                 <div key={k} className="kv"><span className="k">{k}</span><span className="v">{v}</span></div>
               ))}
             </div>

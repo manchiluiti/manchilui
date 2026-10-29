@@ -1077,3 +1077,23 @@ export async function removeModule(code: string, _: FormState): Promise<FormStat
     return fail(e);
   }
 }
+
+/* =================== Delete a student (management) =================== */
+
+export async function deleteStudent(studentId: string): Promise<{ error?: string } | void> {
+  let name = "";
+  try {
+    const { supabase } = await requireManagement();
+    const { data: s } = await supabase.from("students").select("full_name,student_no,user_id").eq("id", studentId).maybeSingle();
+    if (!s) return { error: "Student not found." };
+    // Marks, payments, fee account and messages are removed with the record (on delete cascade).
+    const { error } = await supabase.from("students").delete().eq("id", studentId);
+    if (error) return { error: error.message };
+    if (s.user_id) await adminAuth().deleteUser(s.user_id);
+    name = `${s.full_name} (${s.student_no})`;
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Could not delete. Try again." };
+  }
+  refresh();
+  redirect(`/admin/students?deleted=${encodeURIComponent(name)}`);
+}

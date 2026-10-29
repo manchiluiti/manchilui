@@ -47,6 +47,9 @@ p { margin: 0; }
 .btn-navy:hover { background: var(--navy-h); }
 .btn-outline { border: 2px solid var(--orange); color: var(--orange); padding: 14px 30px; }
 .btn-outline:hover { background: var(--orange); color: #fff; }
+.btn-danger { background: #fff; border: 2px solid #DC2626; color: #B91C1C; }
+.btn-danger:hover { background: #DC2626; color: #fff; }
+.btn-danger:disabled { opacity: .6; }
 .btn-white { background: #fff; color: var(--navy); }
 .btn-white:hover { background: var(--peach); }
 .btn[disabled] { opacity: .6; cursor: progress; }

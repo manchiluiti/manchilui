@@ -6,8 +6,8 @@ import { remindAllOwing } from "../../actions";
 
 const pillFor = (s: string) => (s === "Registered" || s === "Completed" ? "ok" : s === "Suspended" || s === "Withdrawn" ? "warn" : "wait");
 
-export default async function Students({ searchParams }: { searchParams: Promise<{ q?: string; status?: string }> }) {
-  const { q = "", status = "" } = await searchParams;
+export default async function Students({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; deleted?: string }> }) {
+  const { q = "", status = "", deleted } = await searchParams;
   const { supabase } = await managementPage();
   let query = supabase.from("students").select("id,student_no,full_name,session,status,user_id,student_accounts(fees_balance)").order("student_no", { ascending: false });
   if (status) query = query.eq("status", status);
@@ -26,6 +26,8 @@ export default async function Students({ searchParams }: { searchParams: Promise
           <Link href="/admin/students/new" className="btn btn-orange btn-sm">+ Add student</Link>
         </div>
       </div>
+
+      {deleted && <div className="ok-msg" style={{ marginBottom: 16 }}>{deleted} was deleted, along with their portal login.</div>}
 
       <details className="rec" style={{ marginBottom: 16 }}>
         <summary className="rec-h" style={{ cursor: "pointer" }}><h2 style={{ fontSize: "1rem" }}>Send balance reminders to all owing students</h2><span className="copy">Open</span></summary>

@@ -3,7 +3,7 @@ import { kwacha, managementPage } from "@/lib/admin";
 
 export default async function Dashboard() {
   const { supabase, name } = await managementPage();
-  const [{ data: students }, { data: enq }, { data: pays }, { count: newEnq }] = await Promise.all([
+  const [{ data: students, error: stErr }, { data: enq }, { data: pays }, { count: newEnq }] = await Promise.all([
     supabase.from("students").select("status,archived_at,student_accounts(fees_balance)"),
     supabase.from("enquiries").select("id,full_name,phone,preferred_intake,created_at,handled").order("created_at", { ascending: false }).limit(5),
     supabase.from("payments").select("amount,paid_on,students(full_name,student_no)").order("created_at", { ascending: false }).limit(5),
@@ -25,6 +25,7 @@ export default async function Dashboard() {
         <Link href="/admin/students/new" className="btn btn-orange btn-sm">+ Add student</Link>
       </div>
 
+      {stErr && <div className="err" style={{ marginBottom: 16 }}>Couldn&apos;t load students: {stErr.message}{stErr.message.includes("archived_at") ? " — run the 0013_archive_intakes.sql update in Supabase." : ""}</div>}
       <div className="tiles">
         <div className="tile"><div className="k">Current students</div><div className="v">{all.length}</div><div className="s">{active} registered</div></div>
         <div className="tile"><div className="k">Fees outstanding</div><div className="v">{kwacha(owed)}</div><div className="s">{owing} student{owing === 1 ? "" : "s"} owing</div>{oldOwed.length > 0 && <Link className="s copy" href="/admin/students?view=owing">+ {kwacha(oldOwed.reduce((t, s) => t + s.bal, 0))} from archived intakes</Link>}</div>

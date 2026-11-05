@@ -38,7 +38,7 @@ export default async function Home() {
             <p className="eyebrow">Practical • Focused • Career-ready</p>
             <h1>Your Career in Trade<br /><span>Starts Here.</span></h1>
             <p className="lede">
-              A one-year Diploma in Clearing and Forwarding in Chipata. Learn customs procedure,
+              A Diploma in Clearing and Forwarding in Chipata. Learn customs procedure,
               shipping documents and cargo handling, the skills every border post and freight agency needs.
             </p>
             <div className="ctas">
@@ -82,7 +82,7 @@ export default async function Home() {
             {WHY.map(({ title, text, Icon }) => (
               <div key={title} className="fcard static" style={{ flexDirection: "row", gap: 20, alignItems: "flex-start" }}>
                 <div className="ficon" style={{ marginBottom: 0 }}><Icon size={28} /></div>
-                <div><h3 style={{ fontSize: "1.2rem" }}>{title}</h3><p>{text}</p></div>
+                <div><h3 style={{ fontSize: "1.1rem", textTransform: "uppercase", letterSpacing: ".04em" }}>{title}</h3><p>{text}</p></div>
               </div>
             ))}
           </div>

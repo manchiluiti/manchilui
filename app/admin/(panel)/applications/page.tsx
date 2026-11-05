@@ -29,13 +29,19 @@ export default async function Applications({ searchParams }: { searchParams: Pro
           <thead><tr><th>Applicant</th><th>Phone</th><th>Town</th><th>Intake</th><th>Received</th><th>Status</th></tr></thead>
           <tbody>
             {(rows ?? []).map((a) => (
-              <tr key={a.id}>
-                <td><Link className="idlink" href={`/admin/applications/${a.id}`}>{a.full_name}</Link></td>
-                <td>{a.phone}</td>
-                <td>{a.town ?? "–"}</td>
-                <td>{a.preferred_intake ?? "–"}</td>
-                <td>{when(a.created_at)}</td>
-                <td><span className={`pill ${pill(a.status)}`}>{a.status === "Applied" ? "New" : a.status}</span></td>
+              <tr key={a.id} className="rowlink">
+                {[
+                  <span key="n" className="idlink">{a.full_name}</span>,
+                  <span key="p">{a.phone}</span>,
+                  <span key="t">{a.town ?? "–"}</span>,
+                  <span key="i">{a.preferred_intake ?? "–"}</span>,
+                  <span key="w">{when(a.created_at)}</span>,
+                  <span key="s" className={`pill ${pill(a.status)}`}>{a.status === "Applied" ? "New" : a.status}</span>,
+                ].map((content, i) => (
+                  <td key={i}>
+                    <Link href={`/admin/applications/${a.id}`} className="cell-link" tabIndex={i === 0 ? 0 : -1} aria-label={i === 0 ? `Open application from ${a.full_name}` : undefined}>{content}</Link>
+                  </td>
+                ))}
               </tr>
             ))}
             {(rows ?? []).length === 0 && <tr><td colSpan={6} className="muted-row">Nothing here.</td></tr>}

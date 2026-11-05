@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { monthLabel, normalizePhone, sendSms, templates } from "@/lib/sms";
+import { clearOldRejected, getAccount, moveAllPending } from "@/lib/drive";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -25,6 +26,14 @@ export async function GET(req: Request) {
   const today = now.toISOString().slice(0, 10);
   const period = `${today.slice(0, 7)}-01`;
   const result: Record<string, unknown> = { date: today, awake: true };
+
+  // Files: move anything still waiting to Google Drive, and clear old rejected applications' uploads.
+  try {
+    if (await getAccount()) result.drive = await moveAllPending(25_000);
+    result.rejectedCleared = await clearOldRejected();
+  } catch (e) {
+    result.drive = { error: (e as Error).message };
+  }
 
   if (!settings?.sms_enabled) return NextResponse.json({ ...result, reminders: "sms off" });
   if (now.getUTCDate() !== settings.reminder_day) return NextResponse.json({ ...result, reminders: `not reminder day (${settings.reminder_day})` });

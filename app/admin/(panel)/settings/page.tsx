@@ -1,14 +1,33 @@
 import ActionForm from "@/components/ActionForm";
 import { managementPage } from "@/lib/admin";
 import { smsConfigured } from "@/lib/sms";
-import { addCalendarPeriod, removeCalendarPeriod, saveSettings, sendTestSms } from "../../actions";
+import { addCalendarPeriod, disconnectDrive, moveFilesToDrive, removeCalendarPeriod, saveSettings, sendTestSms } from "../../actions";
+import { driveConfigured } from "@/lib/drive";
 
 const KIND: Record<string, string> = { balance_reminder: "Balance reminder", monthly_reminder: "Monthly reminder", salary_paid: "Salary paid", test: "Test" };
 const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lusaka" });
 const d = (s: string) => new Date(s + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-export default async function SettingsPage() {
+const DRIVE_MSG: Record<string, [string, boolean]> = {
+  connected: ["Google Drive connected. New notes and registered students' documents will be saved there.", true],
+  cancelled: ["Google Drive wasn't connected: the approval was cancelled.", false],
+  expired: ["That took too long. Click Connect Google Drive again.", false],
+  "no-refresh": ["Google didn't give a lasting key. Remove Manchilui Portal at myaccount.google.com/permissions, then connect again.", false],
+  "missing-keys": ["Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Vercel, redeploy, then connect.", false],
+  "save-failed": ["Couldn't save the connection. Run the 0014_google_drive.sql update in Supabase first.", false],
+  failed: ["Google Drive couldn't be connected. Try again.", false],
+};
+
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ drive?: string }> }) {
+  const { drive: driveMsg } = await searchParams;
   const { supabase } = await managementPage();
+  const [{ data: driveRows }, { count: notesWaiting }, { count: appsWaiting }] = await Promise.all([
+    supabase.rpc("drive_status"),
+    supabase.from("notes").select("id", { count: "exact", head: true }).is("drive_id", null),
+    supabase.from("applications").select("id", { count: "exact", head: true }).eq("status", "Registered").is("files_moved_at", null),
+  ]);
+  const drive = (driveRows as { email: string | null; connected_at: string }[] | null)?.[0];
+  const waiting = (notesWaiting ?? 0) + (appsWaiting ?? 0);
   const [{ data: s }, { data: cal }, { data: log }] = await Promise.all([
     supabase.from("app_settings").select("*").maybeSingle(),
     supabase.from("fee_calendar").select("*").order("starts_on", { ascending: false }),
@@ -23,6 +42,34 @@ export default async function SettingsPage() {
       <div className="ahead"><div><p className="eyebrow" style={{ fontSize: ".72rem" }}>Settings</p><h1>SMS, calendar and payroll</h1></div></div>
 
       {!configured && <div className="warnbox">SMS isn&apos;t connected yet. Add AT_USERNAME and AT_API_KEY (Africa&apos;s Talking) in Vercel, then redeploy.</div>}
+
+      {driveMsg && DRIVE_MSG[driveMsg] && <div className={DRIVE_MSG[driveMsg][1] ? "ok-msg" : "err"} style={{ marginBottom: 16 }}>{DRIVE_MSG[driveMsg][0]}</div>}
+
+      <section className="rec" style={{ marginBottom: 24 }}>
+        <div className="rec-h">
+          <div><h2>Google Drive storage</h2><small className="sub">Lecture notes and registered students&apos; documents are kept in the institute&apos;s Google Drive (folder &ldquo;Manchilui Portal&rdquo;).</small></div>
+          <span className={`pill ${drive ? "ok" : "wait"}`}>{drive ? "Connected" : "Not connected"}</span>
+        </div>
+        <div className="rec-b" style={{ paddingBlock: 16, display: "grid", gap: 12 }}>
+          {drive ? (
+            <>
+              <div className="kv"><span className="k">Account</span><span className="v">{drive.email ?? "Google account"}</span></div>
+              <div className="kv"><span className="k">Waiting to move</span><span className="v">{waiting ? `${notesWaiting ?? 0} note(s), ${appsWaiting ?? 0} student file set(s)` : "Nothing. All files are in Drive."}</span></div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+                {waiting > 0 && <ActionForm action={moveFilesToDrive} submit="Move files to Drive now" variant="navy" className="inline-form"><span /></ActionForm>}
+                <form action={disconnectDrive}><button className="btn btn-outline btn-sm" type="submit">Disconnect</button></form>
+              </div>
+              <p className="hint">New files move automatically within a minute; anything missed is moved by the daily job. Files already in Drive stay there if you disconnect.</p>
+            </>
+          ) : (
+            <>
+              {!driveConfigured() && <p className="hint">First add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Vercel and redeploy.</p>}
+              <div><a className="btn btn-orange btn-sm" href="/api/google/connect">Connect Google Drive</a></div>
+              <p className="hint">Sign in with manchiluiti@gmail.com when Google asks. Until Drive is connected, files stay in Supabase as now.</p>
+            </>
+          )}
+        </div>
+      </section>
 
       <div className="grid2" style={{ gap: 24, alignItems: "start" }}>
         <div style={{ display: "grid", gap: 24 }}>

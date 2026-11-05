@@ -26,6 +26,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
   ]);
   const scale = (scaleRows ?? []) as GradeBand[];
   if (!s) notFound();
+  const { data: appRow } = await supabase.from("applications").select("id").eq("student_id", id).limit(1).maybeSingle();
   const bal = Number(acc?.fees_balance ?? 0);
   const fee = await tuitionFee(supabase);
 
@@ -45,6 +46,8 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link href={`/admin/messages?to=student:${id}`} className="btn btn-navy btn-sm">Message student</Link>
           <Link href={`/admin/students/${id}/statement`} className="btn btn-outline btn-sm">Statement of results</Link>
+          {appRow && <Link href={`/admin/applications/${appRow.id}`} className="btn btn-outline btn-sm">Application &amp; documents</Link>}
+          {s.drive_folder_id && <a href={`https://drive.google.com/drive/folders/${s.drive_folder_id}`} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm">Google Drive folder</a>}
           <form action={setStudentArchived.bind(null, id, !s.archived_at)}><button className="btn btn-outline btn-sm" type="submit">{s.archived_at ? "Restore to current" : "Archive student"}</button></form>
           <DeleteStudentButton action={deleteStudent.bind(null, id)} name={s.full_name} studentNo={s.student_no} />
         </div>

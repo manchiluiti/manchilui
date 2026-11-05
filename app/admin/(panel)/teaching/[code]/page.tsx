@@ -47,11 +47,6 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
   const graded = students.filter((r) => r.final_mark !== null);
   const avg = graded.length ? Math.round((graded.reduce((t, r) => t + Number(r.final_mark), 0) / graded.length) * 10) / 10 : null;
 
-  const urls = new Map<string, string>();
-  if ((notes ?? []).length) {
-    const { data: signed } = await sb.storage.from("notes").createSignedUrls(notes!.map((n) => n.file_path), 3600);
-    (signed ?? []).forEach((s) => s.path && s.signedUrl && urls.set(s.path, s.signedUrl));
-  }
   const teacherNames = (lecturers ?? []).map((l) => nameOf(l.lecturer_id)).join(", ") || "No lecturer assigned";
   const now = new Date();
   const localNow = new Date(now.getTime() + 2 * 3600e3).toISOString().slice(0, 16);
@@ -166,7 +161,7 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
                     <small>{n.file_name} · {size(n.file_size)} · {nameOf(n.uploaded_by)}</small>
                   </div>
                   <div className="row-actions">
-                    {urls.get(n.file_path) && <a className="copy" href={urls.get(n.file_path)} target="_blank" rel="noreferrer">Open</a>}
+                    <a className="copy" href={`/api/files/note/${n.id}`} target="_blank" rel="noreferrer">Open</a>
                     {(staff.isManagement || n.uploaded_by === staff.user.id) && (
                       <form action={deleteNote.bind(null, n.id)}><button className="del" type="submit">Delete</button></form>
                     )}

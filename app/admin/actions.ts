@@ -1,4 +1,7 @@
 "use server";
+import { after } from "next/server";
+import { deleteDriveFile, getAccount, moveAllPending, moveApplicationToDrive, moveNoteToDrive } from "@/lib/drive";
+import { serviceClient } from "@/lib/service";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -232,6 +235,13 @@ export async function addNote(code: string, note: { title: string; path: string;
       return { error: error.message };
     }
     refresh();
+    // Copy it to Google Drive after the response (if Drive is connected); Supabase is only a waiting room.
+    after(async () => {
+      try {
+        const { data: n } = await serviceClient().from("notes").select("id").eq("file_path", note.path).maybeSingle();
+        if (n && (await getAccount())) await moveNoteToDrive(n.id);
+      } catch { /* the daily job retries */ }
+    });
     return { ok: "Note uploaded. Students can download it now." };
   } catch (e) {
     return fail(e);
@@ -240,9 +250,10 @@ export async function addNote(code: string, note: { title: string; path: string;
 
 export async function deleteNote(id: string) {
   const { supabase } = await requireStaff();
-  const { data: n } = await supabase.from("notes").select("file_path").eq("id", id).maybeSingle();
+  const { data: n } = await supabase.from("notes").select("file_path,drive_id").eq("id", id).maybeSingle();
   if (!n) return;
-  await supabase.storage.from("notes").remove([n.file_path]); // file first: the storage rule checks the note's uploader
+  if (n.drive_id) await deleteDriveFile(n.drive_id);
+  else await supabase.storage.from("notes").remove([n.file_path]); // file first: the storage rule checks the note's uploader
   await supabase.from("notes").delete().eq("id", id);
   refresh();
 }
@@ -906,6 +917,9 @@ export async function registerApplicant(id: string, _: FormState, fd: FormData):
     }
     await supabase.from("applications").update({ status: "Registered", student_id: row.id }).eq("id", id);
     newId = row.id;
+    after(async () => {
+      try { if (await getAccount()) await moveApplicationToDrive(id); } catch { /* the daily job retries */ }
+    });
   } catch (e) {
     return fail(e);
   }
@@ -1142,4 +1156,30 @@ export async function setStudentArchived(studentId: string, archive: boolean) {
   const { supabase } = await requireManagement();
   await supabase.from("students").update({ archived_at: archive ? new Date().toISOString() : null }).eq("id", studentId);
   refresh();
+}
+
+
+/* =================== Google Drive (management) =================== */
+
+export async function disconnectDrive() {
+  await requireManagement();
+  const sb = serviceClient();
+  const { data } = await sb.from("drive_account").select("refresh_token").eq("id", 1).maybeSingle();
+  if (data?.refresh_token) {
+    try { await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(data.refresh_token)}`, { method: "POST" }); } catch { /* ignore */ }
+  }
+  await sb.from("drive_account").delete().eq("id", 1);
+  refresh();
+}
+
+export async function moveFilesToDrive(_: FormState): Promise<FormState> {
+  try {
+    await requireManagement();
+    const r = await moveAllPending(45_000);
+    if (r.error && !r.notes && !r.students) return { error: r.error };
+    refresh();
+    return { ok: `Moved ${r.notes} note(s) and ${r.students} student file set(s) to Google Drive.${r.left > 0 ? ` ${r.left} still waiting: click again.` : ""}${r.failed ? ` ${r.failed} failed: ${r.error}` : ""}` };
+  } catch (e) {
+    return fail(e);
+  }
 }

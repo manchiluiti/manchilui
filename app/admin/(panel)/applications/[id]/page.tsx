@@ -6,7 +6,7 @@ import { nextStudentId } from "@/lib/site";
 import { acceptApplication, registerApplicant, rejectApplication, reopenApplication } from "../../../actions";
 import PasswordInput from "@/components/PasswordInput";
 
-type Doc = { path: string; name: string; kind: string };
+type Doc = { path: string; name: string; kind: string; drive_id?: string };
 const KIND: Record<string, string> = { results: "Grade 12 results", nrc: "NRC", photo: "Photo" };
 const d = (s: string | null) => (s ? new Date(s.length === 10 ? s + "T00:00:00" : s).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Lusaka" }) : "–");
 
@@ -16,11 +16,6 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
   const { data: a } = await supabase.from("applications").select("*").eq("id", id).maybeSingle();
   if (!a) notFound();
   const docs = (a.documents ?? []) as Doc[];
-  const urls = new Map<string, string>();
-  if (docs.length) {
-    const { data: signed } = await supabase.storage.from("applications").createSignedUrls(docs.map((x) => x.path), 3600);
-    (signed ?? []).forEach((s) => s.path && s.signedUrl && urls.set(s.path, s.signedUrl));
-  }
   const fee = await tuitionFee(supabase);
   const year = new Date().getFullYear();
   const { data: last } = await supabase.from("students").select("student_no").like("student_no", `${year}%`);
@@ -52,10 +47,10 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
             <div className="rec-h"><h2>Documents</h2></div>
             <div className="rec-b">
               {docs.length === 0 && <p className="muted-row">No documents attached.</p>}
-              {docs.map((x) => (
+              {docs.map((x, i) => (
                 <div className="row" key={x.path}>
-                  <div><b>{KIND[x.kind] ?? x.kind}</b><small>{x.name}</small></div>
-                  {urls.get(x.path) && <a className="btn btn-sm btn-navy" href={urls.get(x.path)} target="_blank" rel="noreferrer">Open</a>}
+                  <div><b>{KIND[x.kind] ?? x.kind}</b><small>{x.name}{x.drive_id ? " · in Google Drive" : ""}</small></div>
+                  <a className="btn btn-sm btn-navy" href={`/api/files/application/${a.id}/${i}`} target="_blank" rel="noreferrer">Open</a>
                 </div>
               ))}
             </div>

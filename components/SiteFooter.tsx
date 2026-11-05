@@ -45,7 +45,7 @@ export default function SiteFooter() {
       </div>
       <div className="fbottom">
         <div className="wrap">
-          <p>© {new Date().getFullYear()} {SITE.name}. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {SITE.name}. All rights reserved. · <a href="/privacy">Privacy Policy</a></p>
           <p>Eastrise · Chipata · Eastern Province · <Link className="staff-link" href="/admin">Staff</Link></p>
         </div>
       </div>

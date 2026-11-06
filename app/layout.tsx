@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const inter={variable:"x"};
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://manchilui.com"),

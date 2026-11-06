@@ -532,3 +532,14 @@ a.fcard:hover .more { transform: translateX(8px); }
 .assign-head { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-2); text-align: center; line-height: 1.2; }
 .assign-mod { font-size: .95rem; }
 .assign-cell { display: flex !important; justify-content: center; padding: 6px 0; margin: 0 !important; }
+
+/* Install-app banner */
+.install { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 14px; padding: 12px 14px; margin-top: 16px; text-align: left; }
+.install > div > b { display: block; color: var(--navy); font-size: .95rem; }
+.install-help b { color: var(--navy); }
+.install small { color: var(--muted); font-size: .82rem; }
+.install.dark { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.18); }
+.install.dark > div > b, .install.dark .install-help b { color: #fff; }
+.install.dark small { color: rgba(255,255,255,.75); }
+.install-help { flex-basis: 100%; margin: 0; font-size: .85rem; color: var(--muted); }
+.install.dark .install-help { color: rgba(255,255,255,.85); }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import PortalNav from "@/components/PortalNav";
+import InstallApp from "@/components/InstallApp";
 import { getPortal, unreadMessages } from "@/lib/portal";
 import { SITE } from "@/lib/site";
 import { signOut } from "../actions";
@@ -38,6 +39,7 @@ export default async function PortalLayout({ children }: { children: React.React
         <div className="wrap">
           <p className="eyebrow" style={{ fontSize: ".75rem" }}>Welcome back</p>
           <h1>{student.full_name}</h1>
+          <InstallApp dark />
           <PortalNav unread={unread.length} />
         </div>
       </div>

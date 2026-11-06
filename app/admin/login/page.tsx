@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Logo from "@/components/Logo";
+import InstallApp from "@/components/InstallApp";
 import { createClient } from "@/lib/supabase/client";
 import PasswordInput from "@/components/PasswordInput";
 
@@ -36,6 +37,8 @@ export default function StaffLogin() {
           <div className="field"><label htmlFor="s-pw">Password</label><PasswordInput id="s-pw" name="password" autoComplete="current-password" /></div>
           {error && <div className="err" role="alert">{error}</div>}
           <button className="btn btn-navy" type="submit" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
+          <p style={{ fontSize: ".85rem", textAlign: "center", margin: 0 }}>Student? <Link className="copy" href="/portal/login">Student sign in</Link></p>
+          <InstallApp />
         </form>
         <div style={{ textAlign: "center" }}><Link className="back" href="/">← Back to website</Link></div>
       </div>

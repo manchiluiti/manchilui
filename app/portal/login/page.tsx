@@ -6,6 +6,7 @@ import Logo from "@/components/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { SITE, studentIdToEmail } from "@/lib/site";
 import PasswordInput from "@/components/PasswordInput";
+import InstallApp from "@/components/InstallApp";
 
 export default function Login() {
   const router = useRouter();
@@ -58,6 +59,8 @@ export default function Login() {
           <p style={{ fontSize: ".85rem", color: "var(--muted)", textAlign: "center" }}>
             Forgot your password? Call the office on {SITE.phone}.
           </p>
+          <p style={{ fontSize: ".85rem", textAlign: "center", margin: 0 }}>Staff? <Link className="copy" href="/admin/login">Sign in here</Link></p>
+          <InstallApp />
         </form>
         <div style={{ textAlign: "center" }}><Link className="back" href="/">← Back to website</Link></div>
       </div>

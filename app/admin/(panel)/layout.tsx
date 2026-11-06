@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import AdminNav from "@/components/AdminNav";
+import InstallApp from "@/components/InstallApp";
 import Logo from "@/components/Logo";
 import { getStaff } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -53,7 +54,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
         </div>
         <div className="wrap"><AdminNav isManagement={staff.isManagement} isLecturer={staff.isLecturer} newEnquiries={count ?? 0} unread={unread} /></div>
       </header>
-      <main className="wrap amain">{children}</main>
+      <main className="wrap amain"><div style={{ marginTop: -8, marginBottom: 16 }}><InstallApp /></div>{children}</main>
     </div>
   );
 }

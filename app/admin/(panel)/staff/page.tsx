@@ -1,5 +1,5 @@
 import ActionForm from "@/components/ActionForm";
-import { managementPage } from "@/lib/admin";
+import { currentIntakes, managementPage } from "@/lib/admin";
 import { createStaff, removeStaffAccess, setStaffPassword, updateStaff } from "../../actions";
 import PasswordInput from "@/components/PasswordInput";
 
@@ -9,17 +9,41 @@ export default async function StaffPage() {
   const [{ data: staff }, { data: mods }, { data: assigns }] = await Promise.all([
     sb.from("staff").select("user_id,full_name,email,is_management,is_lecturer").order("full_name"),
     sb.from("modules").select("code,name").order("sort"),
-    sb.from("module_lecturers").select("module_code,lecturer_id"),
+    sb.from("module_lecturers").select("module_code,lecturer_id,session"),
   ]);
-  const modsOf = (id: string) => new Set((assigns ?? []).filter((a) => a.lecturer_id === id).map((a) => a.module_code));
-  const unassigned = (mods ?? []).filter((m) => !(assigns ?? []).some((a) => a.module_code === m.code));
+  const intakes = await currentIntakes(sb);
+  // Columns: each current intake. An old "all intakes" assignment shows ticked in every column.
+  const cols = intakes.length ? intakes : ["*"];
+  const chosenFor = (id: string) => {
+    const set = new Set<string>();
+    for (const a of (assigns ?? []).filter((x) => x.lecturer_id === id)) {
+      if (a.session === null) cols.forEach((c) => set.add(`${a.module_code}|${c}`));
+      else set.add(`${a.module_code}|${a.session}`);
+    }
+    return set;
+  };
+  const covered = (code: string, intake: string) => (assigns ?? []).some((a) => a.module_code === code && (a.session === null || a.session === intake));
+  const gaps = (mods ?? []).flatMap((m) => cols.filter((c) => c !== "*" && !covered(m.code, c)).map((c) => `${m.code} (${c})`));
+  const unassigned = intakes.length ? gaps : (mods ?? []).filter((m) => !(assigns ?? []).some((a) => a.module_code === m.code)).map((m) => m.code);
 
   const ModulePicker = ({ chosen }: { chosen: Set<string> }) => (
     <fieldset className="checks">
-      <legend>Modules they teach</legend>
-      {(mods ?? []).map((m) => (
-        <label key={m.code}><input type="checkbox" name="modules" value={m.code} defaultChecked={chosen.has(m.code)} /> <span className="code">{m.code}</span> {m.name}</label>
-      ))}
+      <legend>Modules they teach, by intake</legend>
+      <div className="assign-grid" style={{ gridTemplateColumns: `minmax(160px, 1fr) repeat(${cols.length}, minmax(84px, auto))` }}>
+        <span />
+        {cols.map((c) => <span key={c} className="assign-head">{c === "*" ? "All intakes" : c}</span>)}
+        {(mods ?? []).map((m) => (
+          <div key={m.code} style={{ display: "contents" }}>
+            <span className="assign-mod"><span className="code">{m.code}</span> {m.name}</span>
+            {cols.map((c) => (
+              <label key={c} className="assign-cell" title={`${m.code} · ${c === "*" ? "All intakes" : c}`}>
+                <input type="checkbox" name="assign" value={`${m.code}|${c}`} defaultChecked={chosen.has(`${m.code}|${c}`)} aria-label={`${m.code} for ${c === "*" ? "all intakes" : c}`} />
+              </label>
+            ))}
+          </div>
+        ))}
+      </div>
+      {intakes.length > 1 && <p className="hint">Tick the intake(s) this lecturer teaches each module for. Another lecturer can take the same module for a different intake.</p>}
     </fieldset>
   );
 
@@ -34,7 +58,7 @@ export default async function StaffPage() {
         <div><b>Lecturer</b> sees only their modules: class list (names and IDs), marks, notes, classes and class messages. No fees or contact details.</div>
       </div>
       {unassigned.length > 0 && (
-        <div className="warnbox">No lecturer assigned yet: {unassigned.map((m) => m.code).join(", ")}</div>
+        <div className="warnbox">No lecturer assigned yet: {unassigned.join(", ")}</div>
       )}
 
       <div className="grid2" style={{ gap: 24, alignItems: "start" }}>
@@ -55,7 +79,7 @@ export default async function StaffPage() {
                       <label><input type="checkbox" name="is_management" defaultChecked={s.is_management} /> Management</label>
                       <label><input type="checkbox" name="is_lecturer" defaultChecked={s.is_lecturer} /> Lecturer</label>
                     </div>
-                    <ModulePicker chosen={modsOf(s.user_id)} />
+                    <ModulePicker chosen={chosenFor(s.user_id)} />
                   </ActionForm>
                   <ActionForm action={setStaffPassword.bind(null, s.user_id)} submit="Change password" variant="navy" resetOnSuccess>
                     <div className="field"><label htmlFor={`pw-${s.user_id}`}>New password</label><PasswordInput id={`pw-${s.user_id}`} name="password" autoComplete="new-password" placeholder="At least 8 characters" /></div>

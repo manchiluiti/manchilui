@@ -4,19 +4,21 @@ import ActionForm from "@/components/ActionForm";
 import GradeBadge from "@/components/GradeBadge";
 import NoteUpload from "@/components/NoteUpload";
 import { gradeFor, type GradeBand } from "@/lib/grades";
-import { fmtWhen, getStaff, mark } from "@/lib/admin";
+import { fmtWhen, getStaff, mark, moduleIntakes } from "@/lib/admin";
+import IntakeTabs from "@/components/IntakeTabs";
 import { createClass, deleteClass, deleteNote, saveModuleMarks } from "../../../actions";
 
 type Row = {
   student_id: string; status: string; ca_mark: number | null; exam_mark: number | null; final_mark: number | null;
   marks_updated_by: string | null; marks_updated_at: string | null;
-  students: { full_name: string; student_no: string; status: string; archived_at: string | null } | null;
+  students: { full_name: string; student_no: string; status: string; archived_at: string | null; session: string } | null;
 };
 
 const size = (b: number | null) => (!b ? "" : b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 
-export default async function ModulePage({ params }: { params: Promise<{ code: string }> }) {
+export default async function ModulePage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ intake?: string }> }) {
   const { code: raw } = await params;
+  const { intake: wanted } = await searchParams;
   const code = raw.toUpperCase();
   const staff = await getStaff();
   if (!staff) redirect("/admin/login");
@@ -25,29 +27,34 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
   const { data: mod } = await sb.from("modules").select("code,name").eq("code", code).maybeSingle();
   if (!mod) notFound();
   if (!staff.isManagement) {
-    const { data: assigned } = await sb.from("module_lecturers").select("module_code").eq("module_code", code).eq("lecturer_id", staff.user.id).maybeSingle();
-    if (!assigned || !staff.isLecturer) redirect("/admin/teaching");
+    const { data: assigned } = await sb.from("module_lecturers").select("module_code").eq("module_code", code).eq("lecturer_id", staff.user.id).limit(1);
+    if (!assigned?.length || !staff.isLecturer) redirect("/admin/teaching");
   }
+  const intakes = await moduleIntakes(staff, code);
+  const intake = intakes.includes(wanted ?? "") ? wanted! : intakes[0] ?? "";
 
   const since = new Date(Date.now() - 2 * 3600e3).toISOString();
   const [{ data: rows }, { data: notes }, { data: classes }, { data: people }, { data: lecturers }, { data: scaleRows }] = await Promise.all([
-    sb.from("student_modules").select("student_id,status,ca_mark,exam_mark,final_mark,marks_updated_by,marks_updated_at,students(full_name,student_no,status,archived_at)").eq("module_code", code),
-    sb.from("notes").select("id,title,file_path,file_name,file_size,created_at,uploaded_by").eq("module_code", code).order("created_at", { ascending: false }),
-    sb.from("classes").select("id,title,starts_at,duration_min,meeting_url,details").eq("module_code", code).gte("starts_at", since).order("starts_at"),
+    sb.from("student_modules").select("student_id,status,ca_mark,exam_mark,final_mark,marks_updated_by,marks_updated_at,students(full_name,student_no,status,archived_at,session)").eq("module_code", code),
+    sb.from("notes").select("id,title,file_path,file_name,file_size,created_at,uploaded_by,session").eq("module_code", code).order("created_at", { ascending: false }),
+    sb.from("classes").select("id,title,starts_at,duration_min,meeting_url,details,session").eq("module_code", code).gte("starts_at", since).order("starts_at"),
     sb.from("staff").select("user_id,full_name"),
-    sb.from("module_lecturers").select("lecturer_id").eq("module_code", code),
+    sb.from("module_lecturers").select("lecturer_id,session").eq("module_code", code),
     sb.from("grade_scale").select("letter,min_mark,remark,is_pass"),
   ]);
   const scale = (scaleRows ?? []) as GradeBand[];
 
   const nameOf = (id: string | null) => (people ?? []).find((p) => p.user_id === id)?.full_name ?? "Staff";
   const students = ((rows ?? []) as unknown as Row[])
-    .filter((r) => r.students && r.students.status !== "Withdrawn" && !r.students.archived_at)
+    .filter((r) => r.students && r.students.status !== "Withdrawn" && !r.students.archived_at && r.students.session === intake)
     .sort((a, b) => a.students!.student_no.localeCompare(b.students!.student_no));
   const graded = students.filter((r) => r.final_mark !== null);
   const avg = graded.length ? Math.round((graded.reduce((t, r) => t + Number(r.final_mark), 0) / graded.length) * 10) / 10 : null;
 
-  const teacherNames = (lecturers ?? []).map((l) => nameOf(l.lecturer_id)).join(", ") || "No lecturer assigned";
+  const teacherNames = [...new Set((lecturers ?? []).filter((l) => l.session === null || l.session === intake).map((l) => nameOf(l.lecturer_id)))].join(", ") || "No lecturer assigned";
+  const forIntake = <T extends { session: string | null }>(xs: T[] | null) => (xs ?? []).filter((x) => x.session === null || x.session === intake);
+  const myNotes = forIntake(notes);
+  const myClasses = forIntake(classes);
   const now = new Date();
   const localNow = new Date(now.getTime() + 2 * 3600e3).toISOString().slice(0, 16);
 
@@ -57,8 +64,8 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
         <div>
           <p className="eyebrow" style={{ fontSize: ".72rem" }}><Link href="/admin/teaching">Teaching</Link> / {mod.code}</p>
           <h1>{mod.name}</h1>
-          <p className="hint" style={{ marginTop: 4 }}>Lecturer: {teacherNames}</p>
-          <Link className="btn btn-navy btn-sm" style={{ marginTop: 12 }} href={`/admin/teaching/${code}/messages`}>Comments &amp; class messages →</Link>
+          <p className="hint" style={{ marginTop: 4 }}>{intake ? `${intake} · ` : ""}Lecturer: {teacherNames}</p>
+          <Link className="btn btn-navy btn-sm" style={{ marginTop: 12 }} href={`/admin/teaching/${code}/messages${intake ? `?intake=${encodeURIComponent(intake)}` : ""}`}>Comments &amp; class messages →</Link>
         </div>
         <div className="bal">
           <span className="k">Class average</span>
@@ -67,6 +74,8 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
         </div>
       </div>
 
+      <IntakeTabs intakes={intakes} current={intake} base={`/admin/teaching/${code}`} />
+
       <section className="rec">
         <div className="rec-h">
           <h2>Marks</h2>
@@ -74,7 +83,7 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
         </div>
         <div className="rec-b" style={{ paddingBlock: 12 }}>
           {students.length === 0 ? (
-            <p className="muted-row">No students are enrolled yet.</p>
+            <p className="muted-row">{intake ? `No students in ${intake} yet.` : "No current students yet."}</p>
           ) : (
             <ActionForm action={saveModuleMarks.bind(null, code)} submit="Save marks">
               <div className="tablewrap flat">
@@ -110,6 +119,7 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
             <div className="rec-h"><h2>Schedule a class</h2></div>
             <div className="rec-b" style={{ paddingBlock: 20 }}>
               <ActionForm action={createClass.bind(null, code)} submit="Schedule class" resetOnSuccess>
+                <input type="hidden" name="session" value={intake} />
                 <div className="field"><label htmlFor="c-title">Topic</label><input id="c-title" name="title" placeholder="Week 3: Customs valuation" /></div>
                 <div className="fgrid">
                   <div className="field"><label htmlFor="c-when">Date and start time</label><input id="c-when" name="starts_at" type="datetime-local" min={localNow} /></div>
@@ -128,8 +138,8 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
           <section className="rec">
             <div className="rec-h"><h2>Upcoming classes</h2></div>
             <div className="rec-b">
-              {(classes ?? []).length === 0 && <p className="muted-row">Nothing scheduled.</p>}
-              {(classes ?? []).map((c) => (
+              {myClasses.length === 0 && <p className="muted-row">Nothing scheduled.</p>}
+              {myClasses.map((c) => (
                 <div className="row" key={c.id} style={{ alignItems: "flex-start" }}>
                   <div style={{ minWidth: 0 }}>
                     <b>{c.title}</b>
@@ -150,15 +160,15 @@ export default async function ModulePage({ params }: { params: Promise<{ code: s
           <section className="rec">
             <div className="rec-h"><h2>Notes</h2></div>
             <div className="rec-b" style={{ paddingBlock: 20 }}>
-              <NoteUpload code={code} />
+              <NoteUpload code={code} session={intake} />
             </div>
             <div className="rec-b" style={{ borderTop: "1px solid #F3F4F6" }}>
-              {(notes ?? []).length === 0 && <p className="muted-row">No notes uploaded yet.</p>}
-              {(notes ?? []).map((n) => (
+              {myNotes.length === 0 && <p className="muted-row">No notes uploaded yet.</p>}
+              {myNotes.map((n) => (
                 <div className="row" key={n.id}>
                   <div style={{ minWidth: 0 }}>
                     <b>{n.title}</b>
-                    <small>{n.file_name} · {size(n.file_size)} · {nameOf(n.uploaded_by)}</small>
+                    <small>{n.file_name} · {size(n.file_size)} · {nameOf(n.uploaded_by)}{n.session === null ? " · all intakes" : ""}</small>
                   </div>
                   <div className="row-actions">
                     <a className="copy" href={`/api/files/note/${n.id}`} target="_blank" rel="noreferrer">Open</a>

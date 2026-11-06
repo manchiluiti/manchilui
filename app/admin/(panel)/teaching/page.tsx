@@ -20,6 +20,12 @@ export default async function Teaching() {
   const { data: scale } = await staff.supabase.from("grade_scale").select("letter,min_mark,remark,is_pass").order("min_mark", { ascending: false });
   const rows = [...(scale ?? []), { letter: "", min_mark: "", remark: "", is_pass: false }];
 
+  const { data: mine } = await staff.supabase.from("module_lecturers").select("module_code,session").eq("lecturer_id", staff.user.id);
+  const intakesFor = (c: string) => {
+    const r = (mine ?? []).filter((m) => m.module_code === c);
+    if (!r.length) return "";
+    return r.some((m) => m.session === null) ? "All intakes" : r.map((m) => m.session).join(" · ");
+  };
   const noteCount = (c: string) => (notes ?? []).filter((n) => n.module_code === c).length;
   const first = staff.name.split(" ")[0];
 
@@ -38,6 +44,7 @@ export default async function Teaching() {
           <Link key={m.code} href={`/admin/teaching/${m.code}`} className="fcard">
             <span className="mcode">{m.code}</span>
             <h3 style={{ fontSize: "1.2rem" }}>{m.name}</h3>
+            {intakesFor(m.code) && <small className="sub">You teach: {intakesFor(m.code)}</small>}
             <p>{noteCount(m.code)} note{noteCount(m.code) === 1 ? "" : "s"} · {(classes ?? []).filter((c) => c.module_code === m.code).length} upcoming class{(classes ?? []).filter((c) => c.module_code === m.code).length === 1 ? "" : "es"}</p>
             <span className="more">Open module →</span>
           </Link>

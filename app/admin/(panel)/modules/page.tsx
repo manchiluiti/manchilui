@@ -6,11 +6,14 @@ export default async function ModulesPage() {
   const { supabase } = await managementPage();
   const [{ data: mods }, { data: assigns }, { data: staff }] = await Promise.all([
     supabase.from("modules").select("code,name,sort").order("sort"),
-    supabase.from("module_lecturers").select("module_code,lecturer_id"),
+    supabase.from("module_lecturers").select("module_code,lecturer_id,session"),
     supabase.from("staff").select("user_id,full_name"),
   ]);
   const lecturers = (code: string) =>
-    (assigns ?? []).filter((a) => a.module_code === code).map((a) => (staff ?? []).find((s) => s.user_id === a.lecturer_id)?.full_name).filter(Boolean).join(", ");
+    (assigns ?? []).filter((a) => a.module_code === code).map((a) => {
+      const n = (staff ?? []).find((s) => s.user_id === a.lecturer_id)?.full_name;
+      return n ? `${n} (${a.session ?? "all intakes"})` : null;
+    }).filter(Boolean).join(", ");
 
   return (
     <>

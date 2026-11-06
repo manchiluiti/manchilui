@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 const MAX = 25 * 1024 * 1024;
 const ACCEPT = ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.jpg,.jpeg,.png";
 
-export default function NoteUpload({ code }: { code: string }) {
+export default function NoteUpload({ code, session }: { code: string; session: string }) {
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
   const [busy, setBusy] = useState(false);
@@ -31,7 +31,7 @@ export default function NoteUpload({ code }: { code: string }) {
       setBusy(false);
       return setMsg({ error: `Upload failed: ${error.message}` });
     }
-    const res = await addNote(code, { title, path, name: file.name, size: file.size });
+    const res = await addNote(code, { title, path, name: file.name, size: file.size, session });
     setBusy(false);
     setMsg(res);
     if (res?.ok) {

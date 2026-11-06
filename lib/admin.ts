@@ -37,8 +37,34 @@ export async function requireManagement() {
 export async function requireModuleAccess(code: string) {
   const staff = await requireStaff();
   if (staff.isManagement) return staff;
-  const { data } = await staff.supabase.from("module_lecturers").select("module_code").eq("module_code", code).eq("lecturer_id", staff.user.id).maybeSingle();
-  if (!data || !staff.isLecturer) throw new Error("You are not assigned to this module.");
+  const { data } = await staff.supabase.from("module_lecturers").select("module_code").eq("module_code", code).eq("lecturer_id", staff.user.id).limit(1);
+  if (!data?.length || !staff.isLecturer) throw new Error("You are not assigned to this module.");
+  return staff;
+}
+
+/** Intakes that currently have students (archived intakes excluded), in the order they started. */
+export async function currentIntakes(sb: Staff["supabase"]) {
+  const { data } = await sb.from("students").select("session,created_at").is("archived_at", null).order("created_at");
+  return [...new Set((data ?? []).map((s) => s.session as string).filter(Boolean))];
+}
+
+/** Intakes this staff member can work with in a module: all current ones for management or an "all intakes"
+ *  assignment; otherwise the intakes they're assigned to. */
+export async function moduleIntakes(staff: Staff, code: string) {
+  const all = await currentIntakes(staff.supabase);
+  if (staff.isManagement) return all;
+  const { data } = await staff.supabase.from("module_lecturers").select("session").eq("module_code", code).eq("lecturer_id", staff.user.id);
+  if ((data ?? []).some((r) => r.session === null)) return all;
+  return (data ?? []).map((r) => r.session as string);
+}
+
+/** Server-side check that a lecturer may post to this module + intake. */
+export async function requireIntakeAccess(code: string, session: string) {
+  const staff = await requireModuleAccess(code);
+  if (!session) throw new Error("Choose the intake.");
+  if (staff.isManagement) return staff;
+  const ok = (await moduleIntakes(staff, code)).includes(session);
+  if (!ok) throw new Error(`You don't teach ${code} for ${session}.`);
   return staff;
 }
 

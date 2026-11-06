@@ -5,7 +5,7 @@ import { serviceClient } from "@/lib/service";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
-  adminAuth, PAY_METHODS, requireManagement, requireModuleAccess, requireStaff, STATUSES, tuitionFee,
+  adminAuth, moduleIntakes, PAY_METHODS, requireIntakeAccess, requireManagement, requireModuleAccess, requireStaff, STATUSES, tuitionFee,
 } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { STUDENT_EMAIL_DOMAIN, STUDENT_ID_HINT, STUDENT_ID_RE, studentIdToEmail } from "@/lib/site";
@@ -224,12 +224,12 @@ export async function saveStudentMarks(studentId: string, _: FormState, fd: Form
 
 /* =================== Notes and classes =================== */
 
-export async function addNote(code: string, note: { title: string; path: string; name: string; size: number }): Promise<FormState> {
+export async function addNote(code: string, note: { title: string; path: string; name: string; size: number; session: string }): Promise<FormState> {
   try {
-    const { supabase } = await requireModuleAccess(code);
+    const { supabase } = await requireIntakeAccess(code, note.session);
     if (note.title.trim().length < 2) return { error: "Give the note a title." };
     if (!note.path.startsWith(`${code}/`)) return { error: "File was uploaded to the wrong module." };
-    const { error } = await supabase.from("notes").insert({ module_code: code, title: note.title.trim(), file_path: note.path, file_name: note.name, file_size: note.size });
+    const { error } = await supabase.from("notes").insert({ module_code: code, title: note.title.trim(), file_path: note.path, file_name: note.name, file_size: note.size, session: note.session });
     if (error) {
       await supabase.storage.from("notes").remove([note.path]);
       return { error: error.message };
@@ -242,7 +242,7 @@ export async function addNote(code: string, note: { title: string; path: string;
         if (n && (await getAccount())) await moveNoteToDrive(n.id);
       } catch { /* the daily job retries */ }
     });
-    return { ok: "Note uploaded. Students can download it now." };
+    return { ok: `Note uploaded. Students in ${note.session} can download it now.` };
   } catch (e) {
     return fail(e);
   }
@@ -260,7 +260,7 @@ export async function deleteNote(id: string) {
 
 export async function createClass(code: string, _: FormState, fd: FormData): Promise<FormState> {
   try {
-    const { supabase } = await requireModuleAccess(code);
+    const { supabase } = await requireIntakeAccess(code, str(fd, "session"));
     const title = str(fd, "title");
     const when = str(fd, "starts_at"); // "2026-10-21T14:00" in Zambian time
     const duration_min = Number(str(fd, "duration_min") || "60");
@@ -270,7 +270,7 @@ export async function createClass(code: string, _: FormState, fd: FormData): Pro
     if (meeting_url && !/^https:\/\//.test(meeting_url)) return { error: "The class link must start with https://" };
     if (!(duration_min >= 15 && duration_min <= 480)) return { error: "Duration must be between 15 and 480 minutes." };
     const { error } = await supabase.from("classes").insert({
-      module_code: code, title, starts_at: `${when}:00+02:00`, duration_min, meeting_url, details: str(fd, "details") || null,
+      module_code: code, session: str(fd, "session"), title, starts_at: `${when}:00+02:00`, duration_min, meeting_url, details: str(fd, "details") || null,
     });
     if (error) return { error: error.message };
     refresh();
@@ -313,11 +313,11 @@ export async function createAnnouncement(_: FormState, fd: FormData): Promise<Fo
 
 export async function postModuleAnnouncement(code: string, _: FormState, fd: FormData): Promise<FormState> {
   try {
-    const { supabase } = await requireModuleAccess(code);
+    const { supabase } = await requireIntakeAccess(code, str(fd, "session"));
     const title = str(fd, "title");
     const body = str(fd, "body");
     if (!title || !body) return { error: "Add a title and a message." };
-    const { error } = await supabase.from("announcements").insert({ title, body, audience: "module", module_code: code });
+    const { error } = await supabase.from("announcements").insert({ title, body, audience: "module", module_code: code, session: str(fd, "session") });
     if (error) return { error: error.message };
     refresh();
     return { ok: "Posted to your students." };
@@ -342,6 +342,18 @@ export async function setEnquiryHandled(id: string, handled: boolean) {
 
 /* =================== Staff (management) =================== */
 
+/** Checkbox values look like "CFM5|June 2026 intake"; "*" as the intake means every intake. */
+function assignmentsFrom(fd: FormData, lecturerId: string) {
+  const seen = new Set<string>();
+  return fd.getAll("assign").map(String).flatMap((v) => {
+    const i = v.indexOf("|");
+    if (i < 1 || seen.has(v)) return [];
+    seen.add(v);
+    const session = v.slice(i + 1);
+    return [{ module_code: v.slice(0, i), lecturer_id: lecturerId, session: session === "*" ? null : session }];
+  });
+}
+
 export async function createStaff(_: FormState, fd: FormData): Promise<FormState> {
   try {
     const { supabase } = await requireManagement();
@@ -365,10 +377,8 @@ export async function createStaff(_: FormState, fd: FormData): Promise<FormState
       await auth.deleteUser(data.user.id);
       return { error: e2.message };
     }
-    const modules = fd.getAll("modules").map(String);
-    if (is_lecturer && modules.length) {
-      await supabase.from("module_lecturers").insert(modules.map((m) => ({ module_code: m, lecturer_id: data.user.id })));
-    }
+    const rows = is_lecturer ? assignmentsFrom(fd, data.user.id) : [];
+    if (rows.length) await supabase.from("module_lecturers").insert(rows);
     refresh();
     return { ok: `${full_name} can now sign in at /admin with ${email}.` };
   } catch (e) {
@@ -389,10 +399,10 @@ export async function updateStaff(userId: string, _: FormState, fd: FormData): P
     const { error } = await supabase.from("staff").update({ full_name, is_management, is_lecturer }).eq("user_id", userId);
     if (error) return { error: error.message };
 
-    const modules = is_lecturer ? fd.getAll("modules").map(String) : [];
+    const rows = is_lecturer ? assignmentsFrom(fd, userId) : [];
     await supabase.from("module_lecturers").delete().eq("lecturer_id", userId);
-    if (modules.length) {
-      const { error: e2 } = await supabase.from("module_lecturers").insert(modules.map((m) => ({ module_code: m, lecturer_id: userId })));
+    if (rows.length) {
+      const { error: e2 } = await supabase.from("module_lecturers").insert(rows);
       if (e2) return { error: e2.message };
     }
     refresh();

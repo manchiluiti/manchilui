@@ -1129,6 +1129,7 @@ export async function archiveIntake(session: string, _: FormState): Promise<Form
     const { supabase } = await requireManagement();
     const { data, error } = await supabase.from("students").update({ archived_at: new Date().toISOString() }).eq("session", session).is("archived_at", null).select("id");
     if (error) return { error: error.message };
+    await supabase.from("intakes").delete().eq("name", session);
     refresh();
     return { ok: `${data?.length ?? 0} student(s) in ${session} archived.` };
   } catch (e) {
@@ -1192,4 +1193,50 @@ export async function moveFilesToDrive(_: FormState): Promise<FormState> {
   } catch (e) {
     return fail(e);
   }
+}
+
+
+export async function addIntake(_: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const name = str(fd, "name").replace(/\s+/g, " ");
+    if (name.length < 3) return { error: "Enter the intake name, e.g. August 2026 intake." };
+    const { error } = await supabase.from("intakes").insert({ name });
+    if (error) return { error: error.code === "23505" ? `${name} already exists.` : error.message };
+    refresh();
+    return { ok: `${name} added. You can now allocate lecturers to it on the Staff page, and pick it when adding students.` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function removeIntake(name: string) {
+  const { supabase } = await requireManagement();
+  const { count } = await supabase.from("students").select("id", { count: "exact", head: true }).eq("session", name);
+  if ((count ?? 0) > 0) return;
+  await supabase.from("intakes").delete().eq("name", name);
+  await supabase.from("module_lecturers").delete().eq("session", name);
+  refresh();
+}
+
+/* =================== Delete a staff member (management) =================== */
+
+export async function deleteStaff(userId: string): Promise<{ error?: string } | void> {
+  try {
+    const me = await requireManagement();
+    if (userId === me.user.id) return { error: "You can't delete your own account." };
+    const { supabase } = me;
+    const { data: s } = await supabase.from("staff").select("full_name").eq("user_id", userId).maybeSingle();
+    if (!s) return { error: "Staff member not found." };
+    const { count: paid } = await supabase.from("payslips").select("id", { count: "exact", head: true }).eq("staff_id", userId).eq("status", "paid");
+    if ((paid ?? 0) > 0) {
+      return { error: `${s.full_name} has ${paid} paid payslip(s). Deleting would erase that payroll history, so use "Remove all access" instead: they can't sign in and the records stay.` };
+    }
+    // Removing the login removes their staff record, module allocations and unpaid payslips (on delete cascade).
+    const { error } = await adminAuth().deleteUser(userId);
+    if (error) return { error: error.message };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Could not delete. Try again." };
+  }
+  refresh();
 }

@@ -44,8 +44,11 @@ export async function requireModuleAccess(code: string) {
 
 /** Intakes that currently have students (archived intakes excluded), in the order they started. */
 export async function currentIntakes(sb: Staff["supabase"]) {
-  const { data } = await sb.from("students").select("session,created_at").is("archived_at", null).order("created_at");
-  return [...new Set((data ?? []).map((s) => s.session as string).filter(Boolean))];
+  const [{ data }, { data: planned }] = await Promise.all([
+    sb.from("students").select("session,created_at").is("archived_at", null).order("created_at"),
+    sb.from("intakes").select("name").order("created_at"),
+  ]);
+  return [...new Set([...(data ?? []).map((s) => s.session as string), ...(planned ?? []).map((p) => p.name as string)].filter(Boolean))];
 }
 
 /** Intakes this staff member can work with in a module: all current ones for management or an "all intakes"

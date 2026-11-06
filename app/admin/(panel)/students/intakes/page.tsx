@@ -1,7 +1,7 @@
 import Link from "next/link";
 import ActionForm from "@/components/ActionForm";
 import { kwacha, managementPage } from "@/lib/admin";
-import { archiveIntake, renameIntake, restoreIntake } from "../../../actions";
+import { addIntake, archiveIntake, removeIntake, renameIntake, restoreIntake } from "../../../actions";
 
 type Group = { session: string; total: number; current: number; archived: number; owing: number; owed: number; registered: number };
 
@@ -18,6 +18,8 @@ export default async function IntakesPage() {
     if (s.status === "Registered") g.registered++;
     map.set(s.session, g);
   }
+  const { data: planned } = await supabase.from("intakes").select("name").order("created_at");
+  const upcoming = (planned ?? []).map((p) => p.name as string).filter((n) => !map.has(n));
   const groups = [...map.values()];
   const current = groups.filter((g) => g.current > 0);
   const archived = groups.filter((g) => g.current === 0);
@@ -63,6 +65,27 @@ export default async function IntakesPage() {
       <div className="grid2" style={{ gap: 20, alignItems: "start", marginBottom: 32 }}>
         {current.length ? current.map(card) : <p className="muted-row">No current intakes.</p>}
       </div>
+      <h2 className="subhead" style={{ marginBottom: 12 }}>Upcoming (no students yet)</h2>
+      <div className="grid2" style={{ gap: 20, alignItems: "start", marginBottom: 32 }}>
+        {upcoming.map((n) => (
+          <section className="rec" key={n}>
+            <div className="rec-h"><div><h2>{n}</h2><small className="sub">No students yet · lecturers can already be allocated</small></div><span className="pill wait">Upcoming</span></div>
+            <div className="rec-b" style={{ paddingBlock: 14 }}>
+              <form action={removeIntake.bind(null, n)}><button className="del" type="submit">Remove this intake</button></form>
+            </div>
+          </section>
+        ))}
+        <section className="rec">
+          <div className="rec-h"><h2>Add an intake</h2></div>
+          <div className="rec-b" style={{ paddingBlock: 16 }}>
+            <ActionForm action={addIntake} submit="Add intake" resetOnSuccess>
+              <div className="field"><label htmlFor="ni">Intake name</label><input id="ni" name="name" placeholder="August 2026 intake" /></div>
+              <p className="hint">Use the same style as existing ones, e.g. &ldquo;June 2026 intake&rdquo;. Students you add can then be put in it, and lecturers allocated to it.</p>
+            </ActionForm>
+          </div>
+        </section>
+      </div>
+
       <h2 className="subhead" style={{ marginBottom: 12 }}>Archived</h2>
       <div className="grid2" style={{ gap: 20, alignItems: "start" }}>
         {archived.length ? archived.map(card) : <p className="muted-row">Nothing archived yet.</p>}

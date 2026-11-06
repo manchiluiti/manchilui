@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import ActionForm from "@/components/ActionForm";
 import GradeBadge from "@/components/GradeBadge";
 import { gradeFor, type GradeBand } from "@/lib/grades";
-import { kwacha, managementPage, mark, PAY_METHODS, STATUSES, tuitionFee } from "@/lib/admin";
+import { kwacha, currentIntakes, managementPage, mark, PAY_METHODS, STATUSES, tuitionFee } from "@/lib/admin";
+import IntakeList from "@/components/IntakeList";
 import LinkedFeeInputs from "@/components/LinkedFeeInputs";
 import { editPayment, recordPayment, removePayment, saveStudentMarks, sendBalanceReminder, setFees, setPassword, updateStudent, deleteStudent, setStudentArchived } from "../../../actions";
 import PasswordInput from "@/components/PasswordInput";
@@ -15,6 +16,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
   const { id } = await params;
   const { created } = await searchParams;
   const { supabase } = await managementPage();
+  const intakeNames = await currentIntakes(supabase);
 
   const [{ data: s }, { data: acc }, { data: mods }, { data: pays }, { data: scaleRows }, { data: notes }] = await Promise.all([
     supabase.from("students").select("*").eq("id", id).maybeSingle(),
@@ -168,7 +170,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
                 <div className="fgrid">
                   <div className="field"><label htmlFor="d-name">Full name</label><input id="d-name" name="full_name" defaultValue={s.full_name} /></div>
                   <div className="field"><label htmlFor="d-phone">Phone</label><input id="d-phone" name="phone" defaultValue={acc?.phone ?? ""} /></div>
-                  <div className="field"><label htmlFor="d-session">Session</label><input id="d-session" name="session" defaultValue={s.session} /></div>
+                  <div className="field"><label htmlFor="d-session">Session</label><input id="d-session" name="session" list="intake-list" defaultValue={s.session} /><IntakeList intakes={intakeNames} /></div>
                   <div className="field"><label htmlFor="d-status">Status</label><select id="d-status" name="status" defaultValue={s.status}>{STATUSES.map((st) => <option key={st}>{st}</option>)}</select></div>
                   <div className="field full"><label htmlFor="d-remark">Remark shown to student</label><input id="d-remark" name="remark" defaultValue={acc?.remark ?? ""} placeholder="e.g. Balance due before final exams" /></div>
                 </div>

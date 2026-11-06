@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ActionForm from "@/components/ActionForm";
-import { kwacha, managementPage, tuitionFee } from "@/lib/admin";
+import { kwacha, currentIntakes, managementPage, tuitionFee } from "@/lib/admin";
+import IntakeList from "@/components/IntakeList";
 import { nextStudentId } from "@/lib/site";
 import { acceptApplication, registerApplicant, rejectApplication, reopenApplication } from "../../../actions";
 import PasswordInput from "@/components/PasswordInput";
@@ -13,6 +14,7 @@ const d = (s: string | null) => (s ? new Date(s.length === 10 ? s + "T00:00:00" 
 export default async function ApplicationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { supabase } = await managementPage();
+  const intakeNames = await currentIntakes(supabase);
   const { data: a } = await supabase.from("applications").select("*").eq("id", id).maybeSingle();
   if (!a) notFound();
   const docs = (a.documents ?? []) as Doc[];
@@ -91,7 +93,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
                 <ActionForm action={registerApplicant.bind(null, id)} submit="Register student">
                   <div className="fgrid">
                     <div className="field"><label htmlFor="sn">Student ID</label><input id="sn" name="student_no" defaultValue={nextId} /></div>
-                    <div className="field"><label htmlFor="ss">Session</label><input id="ss" name="session" placeholder="January – June 2027" /></div>
+                    <div className="field"><label htmlFor="ss">Session</label><input id="ss" name="session" list="intake-list" placeholder="August 2026 intake" /><IntakeList intakes={intakeNames} /></div>
                     <div className="field"><label htmlFor="sp">Portal password (optional)</label><PasswordInput id="sp" name="password" autoComplete="new-password" placeholder="Blank = student ID" /></div>
                   </div>
                 </ActionForm>

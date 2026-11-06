@@ -1,6 +1,7 @@
 import ActionForm from "@/components/ActionForm";
 import { currentIntakes, managementPage } from "@/lib/admin";
-import { createStaff, removeStaffAccess, setStaffPassword, updateStaff } from "../../actions";
+import { createStaff, deleteStaff, removeStaffAccess, setStaffPassword, updateStaff } from "../../actions";
+import ConfirmDeleteButton from "@/components/ConfirmDeleteButton";
 import PasswordInput from "@/components/PasswordInput";
 
 export default async function StaffPage() {
@@ -84,10 +85,19 @@ export default async function StaffPage() {
                   <ActionForm action={setStaffPassword.bind(null, s.user_id)} submit="Change password" variant="navy" resetOnSuccess>
                     <div className="field"><label htmlFor={`pw-${s.user_id}`}>New password</label><PasswordInput id={`pw-${s.user_id}`} name="password" autoComplete="new-password" placeholder="At least 8 characters" /></div>
                   </ActionForm>
-                  {s.user_id !== me.user.id && !noAccess && (
-                    <form action={removeStaffAccess.bind(null, s.user_id)}>
-                      <button className="del" type="submit">Remove all access (e.g. staff member has left)</button>
-                    </form>
+                  {s.user_id !== me.user.id && (
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+                      {!noAccess && (
+                        <form action={removeStaffAccess.bind(null, s.user_id)}>
+                          <button className="del" type="submit">Remove all access (keeps their records)</button>
+                        </form>
+                      )}
+                      <ConfirmDeleteButton
+                        action={deleteStaff.bind(null, s.user_id)}
+                        label="Delete staff member"
+                        confirmText={`Delete ${s.full_name}?\n\nThis permanently removes their login, module allocations and unpaid payslips. It can't be undone.`}
+                      />
+                    </div>
                   )}
                 </div>
               </details>

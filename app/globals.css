@@ -572,3 +572,17 @@ a.fcard:hover .more { transform: translateX(8px); }
   .pactions { gap: 8px; }
   .pactions .btn-sm { padding: 9px 14px; font-size: .88rem; }
 }
+
+/* Portal fees overview */
+.feetotal { padding: 18px 24px 22px; }
+.feetotal .k { font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-2); }
+.feetotal .v { font-size: 2rem; font-weight: 800; margin: 4px 0; }
+.feetotal small { color: var(--muted); font-size: .85rem; }
+.feecard { display: block; background: #fff; border-radius: 18px; padding: 16px 20px; box-shadow: 0 6px 20px rgba(11,31,77,.08); color: inherit; transition: transform .12s, box-shadow .12s; }
+.feecard:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(11,31,77,.12); }
+.feecard-h { display: flex; justify-content: space-between; align-items: center; }
+.feecard-h b { color: var(--navy); font-size: 1.05rem; }
+.feecard .arrow { color: var(--orange); font-weight: 800; font-size: 1.2rem; }
+.feecard-row { color: var(--muted); font-size: .88rem; margin-top: 4px; }
+.feecard-bal { font-weight: 700; margin-top: 8px; font-size: .98rem; }
+.backlink { color: var(--orange); font-weight: 700; font-size: .92rem; justify-self: start; background: #fff; padding: 8px 14px; border-radius: 10px; box-shadow: 0 4px 14px rgba(11,31,77,.08); }

@@ -20,7 +20,7 @@ export default function PortalNav({ unread }: { unread: number }) {
   return (
     <nav ref={ref} className="atabs ptabs" aria-label="Student portal">
       {TABS.map((t) => (
-        <Link key={t.href} href={t.href} className={(t.href === "/portal" ? path === t.href : path.startsWith(t.href)) ? "on" : ""}>
+        <Link key={t.href} href={t.href} className={path === t.href ? "on" : ""}>
           {t.label}
           {t.href === "/portal/messages" && unread > 0 && <span className="badge">{unread}</span>}
         </Link>

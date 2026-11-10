@@ -26,11 +26,17 @@ export default async function PortalLayout({ children }: { children: React.React
   return (
     <div className="page-soft" style={{ minHeight: "100vh" }}>
       <div className="pbar">
-        <div className="wrap">
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}><Logo size={40} /><b>Student Portal</b></div>
-          <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-            <span className="pid">{student.student_no}</span>
-            <Link href="/portal/password" className="alink-light">Change password</Link>
+        <div className="wrap pbar-row">
+          <div className="pbrand">
+            <Logo size={40} />
+            <div><b>Student Portal</b><span className="pid pid-m">{student.student_no}</span></div>
+          </div>
+          <div className="pactions">
+            <span className="pid pid-d">{student.student_no}</span>
+            <Link href="/portal/password" className="alink-light pw-link" aria-label="Change password" title="Change password">
+              <svg className="pw-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5" /><path d="m10.7 12.3 9.8-9.8M17 6l3 3M14.5 8.5l2 2" /></svg>
+              <span className="pw-lbl">Change password</span>
+            </Link>
             <form action={signOut}><button className="btn btn-orange btn-sm">Sign out</button></form>
           </div>
         </div>

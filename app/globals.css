@@ -553,3 +553,22 @@ a.fcard:hover .more { transform: translateX(8px); }
 .mini tr.owing td { background: #FFF7ED; }
 .feeitem { border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; }
 .feeitem summary { display: flex; justify-content: space-between; gap: 12px; cursor: pointer; font-weight: 600; color: var(--navy); }
+
+/* Portal top bar: one row on every screen size */
+.pbar .wrap.pbar-row { flex-wrap: nowrap; }
+.pbrand { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.pbrand > div { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.pactions { display: flex; gap: 14px; align-items: center; flex-shrink: 0; }
+.pw-link { display: inline-flex; align-items: center; gap: 6px; }
+.pw-ico, .pid-m { display: none; }
+@media (max-width: 640px) {
+  .pbar .wrap.pbar-row { padding-block: 10px; gap: 10px; }
+  .pbrand { gap: 10px; }
+  .pbrand b { font-size: .98rem; white-space: nowrap; }
+  .pid-m { display: block; font-size: .7rem; margin-top: 2px; }
+  .pid-d, .pw-lbl { display: none; }
+  .pw-ico { display: block; }
+  .pw-link { width: 40px; height: 40px; justify-content: center; border: 1px solid rgba(255,255,255,.25); border-radius: 10px; }
+  .pactions { gap: 8px; }
+  .pactions .btn-sm { padding: 9px 14px; font-size: .88rem; }
+}

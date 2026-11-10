@@ -7,11 +7,12 @@ type Group = { session: string; total: number; current: number; archived: number
 
 export default async function IntakesPage() {
   const { supabase } = await managementPage();
-  const { data } = await supabase.from("students").select("session,status,archived_at,created_at,student_accounts(fees_balance)").order("created_at");
+  const { data } = await supabase.from("students").select("session,status,archived_at,created_at,student_accounts(fees_balance,other_balance)").order("created_at");
   const map = new Map<string, Group>();
   for (const s of data ?? []) {
     const g = map.get(s.session) ?? { session: s.session, total: 0, current: 0, archived: 0, owing: 0, owed: 0, registered: 0 };
-    const bal = Number((s.student_accounts as unknown as { fees_balance: number } | null)?.fees_balance ?? 0);
+    const accRow = s.student_accounts as unknown as { fees_balance: number; other_balance?: number } | null;
+    const bal = Number(accRow?.fees_balance ?? 0) + Number(accRow?.other_balance ?? 0);
     g.total++;
     if (s.archived_at) g.archived++; else g.current++;
     if (bal > 0) { g.owing++; g.owed += bal; }

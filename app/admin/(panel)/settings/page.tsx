@@ -1,6 +1,8 @@
 import ActionForm from "@/components/ActionForm";
-import { managementPage } from "@/lib/admin";
+import { kwacha, managementPage } from "@/lib/admin";
 import { smsConfigured } from "@/lib/sms";
+import { addFeeItem, removeFeeItem, saveFeeItem } from "../../actions";
+import { feeItems } from "@/lib/otherFees";
 import { addCalendarPeriod, disconnectDrive, moveFilesToDrive, removeCalendarPeriod, saveSettings, sendTestSms } from "../../actions";
 import { driveConfigured } from "@/lib/drive";
 
@@ -26,6 +28,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     supabase.from("notes").select("id", { count: "exact", head: true }).is("drive_id", null),
     supabase.from("applications").select("id", { count: "exact", head: true }).eq("status", "Registered").is("files_moved_at", null),
   ]);
+  const items = await feeItems(supabase);
   const drive = (driveRows as { email: string | null; connected_at: string }[] | null)?.[0];
   const waiting = (notesWaiting ?? 0) + (appsWaiting ?? 0);
   const [{ data: s }, { data: cal }, { data: log }] = await Promise.all([
@@ -44,6 +47,38 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       {!configured && <div className="warnbox">SMS isn&apos;t connected yet. Add AT_USERNAME and AT_API_KEY (Africa&apos;s Talking) in Vercel, then redeploy.</div>}
 
       {driveMsg && DRIVE_MSG[driveMsg] && <div className={DRIVE_MSG[driveMsg][1] ? "ok-msg" : "err"} style={{ marginBottom: 16 }}>{DRIVE_MSG[driveMsg][0]}</div>}
+
+      <section className="rec" style={{ marginBottom: 24 }}>
+        <div className="rec-h"><div><h2>Other fees &amp; requirements</h2><small className="sub">Charged on top of tuition. Edit each student&apos;s balances on Students &gt; Other fees.</small></div></div>
+        <div className="rec-b" style={{ paddingBlock: 16, display: "grid", gap: 10 }}>
+          {items.map((f) => (
+            <details key={f.code} className="feeitem">
+              <summary><span>{f.name}</span><span className="hint" style={{ margin: 0 }}>{f.kind === "fee" ? kwacha(f.amount ?? 0) : "Requirement"}</span></summary>
+              <div style={{ paddingTop: 10, display: "grid", gap: 10 }}>
+                <ActionForm action={saveFeeItem.bind(null, f.code)} submit="Save" variant="navy">
+                  <div className="fgrid">
+                    <div className="field"><label htmlFor={`fi-n-${f.code}`}>Name</label><input id={`fi-n-${f.code}`} name="name" defaultValue={f.name} /></div>
+                    {f.kind === "fee" && <div className="field"><label htmlFor={`fi-a-${f.code}`}>Amount (K)</label><input id={`fi-a-${f.code}`} name="amount" inputMode="decimal" defaultValue={String(f.amount ?? 0)} /></div>}
+                  </div>
+                </ActionForm>
+                <form action={removeFeeItem.bind(null, f.code)}><button className="del" type="submit">Remove {f.name} (deletes it from every student)</button></form>
+              </div>
+            </details>
+          ))}
+          <details className="feeitem">
+            <summary><span>+ Add a fee or requirement</span></summary>
+            <div style={{ paddingTop: 10 }}>
+              <ActionForm action={addFeeItem} submit="Add" resetOnSuccess>
+                <div className="fgrid">
+                  <div className="field"><label htmlFor="fi-new-n">Name</label><input id="fi-new-n" name="name" placeholder="e.g. Exam fee" /></div>
+                  <div className="field"><label htmlFor="fi-new-k">Type</label><select id="fi-new-k" name="kind" defaultValue="fee"><option value="fee">Fee (money)</option><option value="item">Requirement (item brought)</option></select></div>
+                  <div className="field"><label htmlFor="fi-new-a">Amount (K, fees only)</label><input id="fi-new-a" name="amount" inputMode="decimal" placeholder="150" /></div>
+                </div>
+              </ActionForm>
+            </div>
+          </details>
+        </div>
+      </section>
 
       <section className="rec" style={{ marginBottom: 24 }}>
         <div className="rec-h">

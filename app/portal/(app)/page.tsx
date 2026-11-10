@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Announcements, { type Announcement } from "@/components/Announcements";
 import { feeSummary, kwacha, myModules, requirePortalStudent, unreadMessages, when } from "@/lib/portal";
+import { studentFees } from "@/lib/otherFees";
 
 const statusPill = (s: string) => (s === "Registered" || s === "Completed" ? "ok" : s === "Suspended" ? "warn" : "wait");
 
@@ -14,6 +15,8 @@ export default async function PortalDashboard() {
     student.archived_at ? Promise.resolve({ data: [] }) : supabase.from("announcements").select("id,title,body,posted_on,module_code").in("audience", ["public", "students", "staff_students", "module"]).order("posted_on", { ascending: false }).order("created_at", { ascending: false }).limit(5),
     student.archived_at ? Promise.resolve({ data: [] }) : supabase.from("classes").select("id,module_code,title,starts_at,duration_min,meeting_url,details").gte("starts_at", since).order("starts_at").limit(5),
   ]);
+  const other = await studentFees(supabase, student.id);
+  const owed = fees.bal + other.balance;
   const done = modules.filter((m) => m.status === "Completed").length;
   const modName = (c: string) => modules.find((m) => m.module_code === c)?.modules.name ?? c;
   const annItems = ((ann ?? []) as (Announcement & { module_code: string | null })[]).map((a) => ({ ...a, title: a.module_code ? `${a.module_code}: ${a.title}` : a.title }));
@@ -30,7 +33,7 @@ export default async function PortalDashboard() {
             {fees.remark && <div className="kv"><span className="k">Remark</span><span className="v">{fees.remark}</span></div>}
           </div>
           <div className="feesum ptiles">
-            <Link href="/portal/fees"><div className="k">Fees balance</div><div className="v" style={{ color: fees.owing ? "var(--warn)" : "var(--ok)" }}>{fees.owing ? kwacha(fees.bal) : "Fully paid"}</div><span className="more">Fees & payments →</span></Link>
+            <Link href="/portal/fees"><div className="k">Fees balance</div><div className="v" style={{ color: owed > 0 ? "var(--warn)" : "var(--ok)" }}>{owed > 0 ? kwacha(owed) : "Fully paid"}</div><span className="more">Fees & payments →</span></Link>
             <Link href="/portal/results"><div className="k">Modules completed</div><div className="v">{done} of {modules.length}</div><span className="more">Results →</span></Link>
             <Link href="/portal/messages"><div className="k">Messages</div><div className="v" style={{ color: unread.length ? "var(--orange)" : undefined }}>{unread.length ? `${unread.length} new` : "None new"}</div><span className="more">Read →</span></Link>
           </div>

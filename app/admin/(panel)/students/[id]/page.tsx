@@ -5,8 +5,9 @@ import GradeBadge from "@/components/GradeBadge";
 import { gradeFor, type GradeBand } from "@/lib/grades";
 import { kwacha, currentIntakes, managementPage, mark, PAY_METHODS, STATUSES, tuitionFee } from "@/lib/admin";
 import IntakeList from "@/components/IntakeList";
+import { studentFees } from "@/lib/otherFees";
 import LinkedFeeInputs from "@/components/LinkedFeeInputs";
-import { editPayment, recordPayment, removePayment, saveStudentMarks, sendBalanceReminder, setFees, setPassword, updateStudent, deleteStudent, setStudentArchived } from "../../../actions";
+import { editPayment, recordPayment, removePayment, saveStudentMarks, sendBalanceReminder, setFees, setPassword, updateStudent, deleteStudent, setStudentArchived, saveOtherFees } from "../../../actions";
 import PasswordInput from "@/components/PasswordInput";
 import DeleteStudentButton from "@/components/DeleteStudentButton";
 
@@ -30,6 +31,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
   if (!s) notFound();
   const { data: appRow } = await supabase.from("applications").select("id").eq("student_id", id).limit(1).maybeSingle();
   const bal = Number(acc?.fees_balance ?? 0);
+  const other = await studentFees(supabase, id);
   const fee = await tuitionFee(supabase);
 
   const modules = ((mods ?? []) as unknown as ModRow[]).sort((a, b) => a.modules.sort - b.modules.sort);
@@ -77,7 +79,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
           </section>
 
           <section className="rec">
-            <div className="rec-h"><h2>Fees</h2>{bal > 0 && <ActionForm action={sendBalanceReminder.bind(null, id)} submit="Send balance reminder SMS" variant="navy" className="inline-form"><span /></ActionForm>}</div>
+            <div className="rec-h"><h2>Fees</h2>{bal + other.balance > 0 && <ActionForm action={sendBalanceReminder.bind(null, id)} submit="Send balance reminder SMS" variant="navy" className="inline-form"><span /></ActionForm>}</div>
             <div className="feesum">
               <div><div className="k">Total fees</div><div className="v">{kwacha(totalPaid + bal)}</div></div>
               <div><div className="k">Paid</div><div className="v" style={{ color: "var(--ok)" }}>{kwacha(totalPaid)}</div></div>
@@ -113,6 +115,36 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
                   </details>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section className="rec">
+            <div className="rec-h">
+              <h2>Other fees &amp; requirements</h2>
+              <span className={`pill ${other.balance > 0 || other.missing ? "warn" : "ok"}`}>{other.balance > 0 ? `${kwacha(other.balance)} owing` : other.missing ? `${other.missing} item(s) missing` : "All cleared"}</span>
+            </div>
+            <div className="rec-b" style={{ paddingBlock: 16 }}>
+              <ActionForm action={saveOtherFees.bind(null, id)} submit="Save other fees" variant="navy">
+                <table className="mini">
+                  <thead><tr><th>Fee</th><th className="num">Amount</th><th className="num">Balance owed (K)</th></tr></thead>
+                  <tbody>
+                    {other.fees.map((f) => (
+                      <tr key={f.code}>
+                        <td>{f.name}</td>
+                        <td className="num">{kwacha(f.amount ?? 0)}</td>
+                        <td className="num"><input className="mini-input" name={`bal_${f.code}`} inputMode="decimal" defaultValue={String(f.balance)} aria-label={`${f.name} balance`} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <fieldset className="checks" style={{ marginTop: 12 }}>
+                  <legend>Requirements brought</legend>
+                  {other.items.map((i) => (
+                    <label key={i.code}><input type="checkbox" name={`has_${i.code}`} defaultChecked={i.provided} /> {i.name}</label>
+                  ))}
+                </fieldset>
+                <p className="hint">0 = fully paid. Untick anything the student hasn&apos;t brought yet.</p>
+              </ActionForm>
             </div>
           </section>
 

@@ -4,13 +4,13 @@ import { kwacha, managementPage } from "@/lib/admin";
 export default async function Dashboard() {
   const { supabase, name } = await managementPage();
   const [{ data: students, error: stErr }, { data: enq }, { data: pays }, { count: newEnq }] = await Promise.all([
-    supabase.from("students").select("status,archived_at,student_accounts(fees_balance)"),
+    supabase.from("students").select("status,archived_at,student_accounts(fees_balance,other_balance)"),
     supabase.from("enquiries").select("id,full_name,phone,preferred_intake,created_at,handled").order("created_at", { ascending: false }).limit(5),
     supabase.from("payments").select("amount,paid_on,students(full_name,student_no)").order("created_at", { ascending: false }).limit(5),
     supabase.from("enquiries").select("id", { count: "exact", head: true }).eq("handled", false),
   ]);
 
-  const everyone = (students ?? []).map((s) => ({ status: s.status, archived: !!s.archived_at, bal: Number((s.student_accounts as unknown as { fees_balance: number } | null)?.fees_balance ?? 0) }));
+  const everyone = (students ?? []).map((s) => ({ status: s.status, archived: !!s.archived_at, bal: Number((s.student_accounts as unknown as { fees_balance: number } | null)?.fees_balance ?? 0) + Number((s.student_accounts as unknown as { other_balance?: number } | null)?.other_balance ?? 0) }));
   const all = everyone.filter((s) => !s.archived);
   const oldOwed = everyone.filter((s) => s.archived && s.bal > 0);
   const active = all.filter((s) => s.status === "Registered").length;

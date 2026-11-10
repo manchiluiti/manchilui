@@ -723,10 +723,10 @@ async function logSms(sb: Sb, row: Record<string, unknown>) {
 
 /** (a) Balance reminder for one owing student. At most one per student per 24 hours. */
 async function remindStudent(sb: Sb, studentId: string): Promise<{ ok: boolean; msg: string }> {
-  const { data: s } = await sb.from("students").select("id,full_name,student_no,status,student_accounts(fees_balance,phone)").eq("id", studentId).maybeSingle();
+  const { data: s } = await sb.from("students").select("id,full_name,student_no,status,student_accounts(fees_balance,other_balance,phone)").eq("id", studentId).maybeSingle();
   if (!s) return { ok: false, msg: "Student not found." };
-  const acc = s.student_accounts as unknown as { fees_balance: number; phone: string | null } | null;
-  const bal = Number(acc?.fees_balance ?? 0);
+  const acc = s.student_accounts as unknown as { fees_balance: number; other_balance?: number; phone: string | null } | null;
+  const bal = Number(acc?.fees_balance ?? 0) + Number(acc?.other_balance ?? 0); // tuition + other fees
   if (bal <= 0) return { ok: false, msg: `${s.full_name} doesn't owe anything.` };
   const to = normalizePhone(acc?.phone);
   if (!to) return { ok: false, msg: `${s.full_name} has no valid phone number. Add one under Details.` };
@@ -758,7 +758,7 @@ export async function remindAllOwing(_: FormState): Promise<FormState> {
     const { supabase } = await requireManagement();
     const { data: st } = await supabase.from("app_settings").select("sms_enabled").maybeSingle();
     if (!st?.sms_enabled) return { error: "SMS is switched off. Turn it on in Admin > Settings." };
-    const { data: owing } = await supabase.from("student_accounts").select("student_id,fees_balance,students!inner(status)").gt("fees_balance", 0).in("students.status", ["Registered", "Pending"]);
+    const { data: owing } = await supabase.from("student_accounts").select("student_id,fees_balance,other_balance,students!inner(status)").or("fees_balance.gt.0,other_balance.gt.0").in("students.status", ["Registered", "Pending"]);
     let sent = 0, skipped = 0;
     for (const o of (owing ?? []).slice(0, 300)) {
       const r = await remindStudent(supabase, o.student_id);
@@ -1238,5 +1238,101 @@ export async function deleteStaff(userId: string): Promise<{ error?: string } | 
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Could not delete. Try again." };
   }
+  refresh();
+}
+
+/* =================== Other fees and requirements (management) =================== */
+
+type FeeItemRow = { code: string; kind: string; amount: number | null };
+async function writeOtherFees(supabase: Awaited<ReturnType<typeof requireManagement>>["supabase"], studentId: string, fd: FormData, prefix = "") {
+  const { data: items } = await supabase.from("fee_items").select("code,kind,amount");
+  const rows = otherFeeRows((items ?? []) as FeeItemRow[], studentId, fd, prefix);
+  const { error } = await supabase.from("student_fee_items").upsert(rows, { onConflict: "student_id,item_code" });
+  if (error) throw new Error(error.message);
+}
+
+function otherFeeRows(items: FeeItemRow[], studentId: string, fd: FormData, prefix: string) {
+  const rows: { student_id: string; item_code: string; balance: number; provided: boolean; updated_at: string }[] = [];
+  for (const f of items ?? []) {
+    if (f.kind === "fee") {
+      const raw = str(fd, `${prefix}bal_${f.code}`);
+      const bal = money(raw || "0");
+      if (Number.isNaN(bal) || bal < 0) throw new Error(`Check the ${f.code} balance${prefix ? " in the table" : ""}: enter a number, e.g. 300.`);
+      if (f.amount !== null && bal > Number(f.amount)) throw new Error(`The ${f.code} balance can't be more than K${Number(f.amount)}.`);
+      rows.push({ student_id: studentId, item_code: f.code, balance: bal, provided: true, updated_at: new Date().toISOString() });
+    } else {
+      rows.push({ student_id: studentId, item_code: f.code, balance: 0, provided: fd.get(`${prefix}has_${f.code}`) === "on", updated_at: new Date().toISOString() });
+    }
+  }
+  return rows;
+}
+
+export async function saveOtherFees(studentId: string, _: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    await writeOtherFees(supabase, studentId, fd);
+    refresh();
+    return { ok: "Saved. The student sees this on their Fees page." };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+/** Bulk table: fields are named "<studentId>:bal_<code>" and "<studentId>:has_<code>". */
+export async function bulkOtherFees(_: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const ids = fd.getAll("sid").map(String);
+    const { data: items } = await supabase.from("fee_items").select("code,kind,amount");
+    const rows = ids.flatMap((id) => otherFeeRows((items ?? []) as FeeItemRow[], id, fd, `${id}:`));
+    const { error } = await supabase.from("student_fee_items").upsert(rows, { onConflict: "student_id,item_code" });
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: `Saved other fees for ${ids.length} student(s).` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function saveFeeItem(code: string, _: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const name = str(fd, "name");
+    const amount = str(fd, "amount");
+    const { data: item } = await supabase.from("fee_items").select("kind").eq("code", code).maybeSingle();
+    if (!item) return { error: "Item not found." };
+    const a = item.kind === "fee" ? money(amount) : null;
+    if (item.kind === "fee" && (a === null || Number.isNaN(a) || a < 0)) return { error: "Enter the amount, e.g. 700." };
+    const { error } = await supabase.from("fee_items").update({ name, amount: a }).eq("code", code);
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: "Saved." };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function addFeeItem(_: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const name = str(fd, "name");
+    const kind = str(fd, "kind") === "item" ? "item" : "fee";
+    const a = kind === "fee" ? money(str(fd, "amount")) : null;
+    if (name.length < 2) return { error: "Enter a name." };
+    if (kind === "fee" && (a === null || Number.isNaN(a) || a < 0)) return { error: "Enter the amount, e.g. 150." };
+    const code = name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 30) || `item_${Date.now()}`;
+    const { data: last } = await supabase.from("fee_items").select("sort").order("sort", { ascending: false }).limit(1);
+    const { error } = await supabase.from("fee_items").insert({ code, name, kind, amount: a, sort: (last?.[0]?.sort ?? 0) + 1 });
+    if (error) return { error: error.code === "23505" ? "That item already exists." : error.message };
+    refresh();
+    return { ok: `${name} added. Every student starts as ${kind === "fee" ? "fully paid" : "having brought it"}; edit those who haven't.` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function removeFeeItem(code: string) {
+  const { supabase } = await requireManagement();
+  await supabase.from("fee_items").delete().eq("code", code);
   refresh();
 }

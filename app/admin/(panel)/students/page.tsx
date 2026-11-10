@@ -10,14 +10,14 @@ export default async function Students({ searchParams }: { searchParams: Promise
   const { q = "", status = "", deleted, view: rawView = "current", intake = "" } = await searchParams;
   const view = rawView === "archived" || rawView === "owing" ? rawView : "current";
   const { supabase } = await managementPage();
-  let query = supabase.from("students").select("id,student_no,full_name,session,status,user_id,archived_at,student_accounts(fees_balance)").order("student_no", { ascending: false });
+  let query = supabase.from("students").select("id,student_no,full_name,session,status,user_id,archived_at,student_accounts(fees_balance,other_balance)").order("student_no", { ascending: false });
   query = view === "current" ? query.is("archived_at", null) : query.not("archived_at", "is", null);
   if (status) query = query.eq("status", status);
   if (intake) query = query.eq("session", intake);
   const term = q.trim().replace(/[%,()]/g, "");
   if (term) query = query.or(`full_name.ilike.%${term}%,student_no.ilike.%${term}%`);
   const { data: found, error } = await query;
-  const balOf = (s: { student_accounts: unknown }) => Number((s.student_accounts as { fees_balance: number } | null)?.fees_balance ?? 0);
+  const balOf = (s: { student_accounts: unknown }) => { const a = s.student_accounts as { fees_balance: number; other_balance?: number } | null; return Number(a?.fees_balance ?? 0) + Number(a?.other_balance ?? 0); };
   const data = view === "owing" ? (found ?? []).filter((s) => balOf(s) > 0) : found;
   // An exact ID search finds the student even if their intake is archived.
   if (term && !data?.length) {
@@ -33,6 +33,7 @@ export default async function Students({ searchParams }: { searchParams: Promise
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link href="/admin/students/intakes" className="btn btn-navy btn-sm">Intakes &amp; archive</Link>
           <Link href="/admin/students/fees" className="btn btn-navy btn-sm">Edit fees (current students)</Link>
+          <Link href="/admin/students/other-fees" className="btn btn-navy btn-sm">Other fees</Link>
           <Link href="/admin/students/import" className="btn btn-navy btn-sm">Import from spreadsheet</Link>
           <Link href="/admin/students/new" className="btn btn-orange btn-sm">+ Add student</Link>
         </div>

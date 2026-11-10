@@ -43,8 +43,8 @@ export async function GET(req: Request) {
 
   const { data: owing } = await sb
     .from("student_accounts")
-    .select("student_id,fees_balance,phone,students!inner(full_name,status)")
-    .gt("fees_balance", 0)
+    .select("student_id,fees_balance,other_balance,phone,students!inner(full_name,status)")
+    .or("fees_balance.gt.0,other_balance.gt.0")
     .in("students.status", ["Registered", "Pending"]);
   const { data: done } = await sb.from("sms_log").select("student_id").eq("kind", "monthly_reminder").eq("period", period).eq("status", "sent");
   const already = new Set((done ?? []).map((d) => d.student_id));
@@ -55,7 +55,7 @@ export async function GET(req: Request) {
     const to = normalizePhone(o.phone);
     if (!to) { skipped++; continue; }
     const st = o.students as unknown as { full_name: string };
-    const message = templates.monthlyReminder(st.full_name, Number(o.fees_balance), monthLabel(period));
+    const message = templates.monthlyReminder(st.full_name, Number(o.fees_balance) + Number(o.other_balance ?? 0), monthLabel(period));
     const r = await sendSms(to, message);
     await sb.from("sms_log").insert({
       kind: "monthly_reminder", student_id: o.student_id, period, to_phone: to, message,

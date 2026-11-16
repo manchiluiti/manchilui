@@ -57,7 +57,7 @@ export default function Login() {
           {error && <div className="err" role="alert">{error}</div>}
           <button className="btn btn-orange" type="submit" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
           <p style={{ fontSize: ".85rem", color: "var(--muted)", textAlign: "center" }}>
-            Forgot your password? Call the office on {SITE.phone}.
+            Forgot your password? Call <a className="copy" href="tel:+260970615997">{SITE.supportPhone}</a>.
           </p>
           <p style={{ fontSize: ".85rem", textAlign: "center", margin: 0 }}>Staff? <Link className="copy" href="/admin/login">Sign in here</Link></p>
           <InstallApp />

@@ -3,6 +3,8 @@ export const SITE = {
   place: "Eastrise · Chipata · Zambia",
   address: "Eastrise, Chipata, Eastern Province, Zambia",
   phone: "+260 973 742 072",
+  /** Portal help line (forgotten passwords, login problems). */
+  supportPhone: "+260 970 615 997",
   email: "info@manchilui.com",
   programme: "Diploma in Clearing & Forwarding",
 };

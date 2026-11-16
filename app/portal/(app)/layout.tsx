@@ -16,7 +16,7 @@ export default async function PortalLayout({ children }: { children: React.React
     return (
       <div className="login"><div className="wrap"><div className="lcard">
         <h1>Record not found</h1>
-        <p style={{ textAlign: "center" }}>Your login works, but no student record is linked to it yet. Contact the office on {SITE.phone}.</p>
+        <p style={{ textAlign: "center" }}>Your login works, but no student record is linked to it yet. Call {SITE.supportPhone}.</p>
         <form action={signOut}><button className="btn btn-orange" style={{ width: "100%" }}>Sign out</button></form>
       </div></div></div>
     );

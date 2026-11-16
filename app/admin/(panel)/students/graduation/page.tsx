@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ActionForm from "@/components/ActionForm";
+import TableSearch from "@/components/TableSearch";
 import { managementPage } from "@/lib/admin";
 import { saveGraduationPayments, setGraduationFee } from "../../../actions";
 
@@ -39,12 +40,13 @@ export default async function GraduationAdmin({ searchParams }: { searchParams: 
       {intakes.length > 1 && <p className="hint" style={{ marginBottom: 12 }}>Intake: <Link className="copy" href={`/admin/students/graduation${qs({ intake: "" })}`}>All</Link>{intakes.map((i) => <span key={i}> · <Link className="copy" href={`/admin/students/graduation${qs({ intake: i })}`}>{i}</Link></span>)}</p>}
 
       <ActionForm action={saveGraduationPayments} submit="Save" variant="orange">
+        <TableSearch target="grad-table" />
         <div className="atable" style={{ overflowX: "auto" }}>
-          <table className="mini" style={{ minWidth: 620 }}>
+          <table className="mini" id="grad-table" style={{ minWidth: 620 }}>
             <thead><tr><th>Student</th><th style={{ textAlign: "center" }}>Paid K{fee}</th><th>Date paid</th><th className="num">Other balances</th><th>Receipt</th></tr></thead>
             <tbody>
               {list.map((s) => (
-                <tr key={s.id} className={s.graduation_paid_on ? "" : "owing"}>
+                <tr key={s.id} className={s.graduation_paid_on ? "" : "owing"} data-search={`${s.full_name} ${s.student_no}`.toLowerCase()}>
                   <td><input type="hidden" name="sid" value={s.id} /><Link className="copy" href={`/admin/students/${s.id}`}>{s.full_name}</Link><br /><small className="sub">{s.student_no}</small></td>
                   <td style={{ textAlign: "center" }}><input type="checkbox" name={`paid_${s.id}`} defaultChecked={!!s.graduation_paid_on} aria-label={`${s.full_name} paid graduation fee`} /></td>
                   <td><input type="date" name={`date_${s.id}`} defaultValue={s.graduation_paid_on ?? ""} className="mini-input" style={{ width: 160, textAlign: "left" }} aria-label={`${s.full_name} date paid`} /></td>

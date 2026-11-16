@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ActionForm from "@/components/ActionForm";
+import TableSearch from "@/components/TableSearch";
 import { kwacha, managementPage } from "@/lib/admin";
 import { feeItems } from "@/lib/otherFees";
 import { bulkOtherFees } from "../../../actions";
@@ -38,8 +39,9 @@ export default async function OtherFeesPage({ searchParams }: { searchParams: Pr
       {intake && <p className="hint" style={{ marginBottom: 12 }}>Showing {intake} · <Link className="copy" href="/admin/students/other-fees">All intakes</Link></p>}
 
       <ActionForm action={bulkOtherFees} submit="Save all" variant="orange">
+        <TableSearch target="other-table" />
         <div className="atable" style={{ overflowX: "auto" }}>
-          <table className="mini" style={{ minWidth: 640 }}>
+          <table className="mini" id="other-table" style={{ minWidth: 640 }}>
             <thead>
               <tr>
                 <th>Student</th>
@@ -49,7 +51,7 @@ export default async function OtherFeesPage({ searchParams }: { searchParams: Pr
             </thead>
             <tbody>
               {list.map((s) => (
-                <tr key={s.id} className={owesSomething(s.id) ? "owing" : ""}>
+                <tr key={s.id} className={owesSomething(s.id) ? "owing" : ""} data-search={`${s.full_name} ${s.student_no}`.toLowerCase()}>
                   <td><input type="hidden" name="sid" value={s.id} /><Link href={`/admin/students/${s.id}`} className="copy">{s.full_name}</Link><br /><small className="sub">{s.student_no}</small></td>
                   {fees.map((f) => (
                     <td key={f.code} className="num"><input className="mini-input" name={`${s.id}:bal_${f.code}`} inputMode="decimal" defaultValue={String(Number(get(s.id, f.code)?.balance ?? 0))} aria-label={`${s.full_name} ${f.name} owed`} /></td>

@@ -603,7 +603,7 @@ a.fcard:hover .more { transform: translateX(8px); }
 .gr-issued { display: grid; gap: 6px; }
 .gr-k { font-weight: 600; }
 .gr-sig { display: flex; align-items: flex-end; gap: 10px; }
-.sig-img { height: 64px; width: auto; max-width: 220px; display: block; }
+.sig-img { height: 72px; width: auto; max-width: 240px; display: block; margin-bottom: -6px; }
 .sig-blank { display: inline-block; width: 200px; border-bottom: 1.5px dotted #555; height: 40px; }
 .gr-amount { display: flex; align-items: center; gap: 10px; }
 .gr-amount b { border: 1.5px solid #111; border-radius: 6px; padding: 8px 20px; font-size: 1.15rem; min-width: 170px; }

@@ -583,3 +583,37 @@ a.fcard:hover .more { transform: translateX(8px); }
 .feeline-nums .k { display: block; font-size: .66rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-2); }
 .feeline-nums .v { display: block; font-weight: 800; color: var(--navy); font-size: .98rem; margin-top: 2px; white-space: nowrap; }
 @media (max-width: 380px) { .feeline-nums .v { font-size: .88rem; } }
+
+/* Graduation receipt (prints on A4, half page) */
+.greceipt-wrap { max-width: 760px; margin: 0 auto; }
+.greceipt { background: #fff; border: 1.5px solid #0B1F4D; border-radius: 6px; padding: 28px 34px 30px; color: #111; font-family: var(--font-inter), Arial, sans-serif; }
+.gr-head { text-align: center; border-bottom: 2px solid #0B1F4D; padding-bottom: 12px; }
+.gr-logo { width: 92px; height: 92px; object-fit: contain; display: block; margin: 0 auto 6px; }
+.gr-head h1 { font-size: 1.55rem; font-weight: 800; letter-spacing: .02em; color: #0B1F4D; margin: 0; }
+.gr-motto { font-style: italic; margin: 2px 0 0; font-size: 1rem; }
+.gr-contact { margin: 2px 0 0; font-size: .85rem; color: #333; }
+.gr-title { text-align: center; margin: 16px 0 8px; }
+.gr-title span { display: inline-block; background: #E5E7EB; padding: 6px 22px; font-weight: 800; letter-spacing: .06em; font-size: 1rem; border-radius: 3px; }
+.gr-lines { margin: 0; }
+.gr-lines > div { display: flex; gap: 10px; align-items: baseline; padding: 10px 0 4px; border-bottom: 1.5px dotted #555; }
+.gr-lines dt { white-space: nowrap; font-weight: 600; }
+.gr-lines dd { margin: 0; font-weight: 500; }
+.gr-lines small { color: #555; }
+.gr-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 18px; margin-top: 18px; flex-wrap: wrap; }
+.gr-issued { display: grid; gap: 6px; }
+.gr-k { font-weight: 600; }
+.gr-sig { display: flex; align-items: flex-end; gap: 10px; }
+.sig-img { height: 64px; width: auto; max-width: 220px; display: block; }
+.sig-blank { display: inline-block; width: 200px; border-bottom: 1.5px dotted #555; height: 40px; }
+.gr-amount { display: flex; align-items: center; gap: 10px; }
+.gr-amount b { border: 1.5px solid #111; border-radius: 6px; padding: 8px 20px; font-size: 1.15rem; min-width: 170px; }
+@media (max-width: 560px) { .greceipt { padding: 20px 16px; } .gr-head h1 { font-size: 1.15rem; } .gr-lines > div { flex-direction: column; gap: 2px; } }
+@media print {
+  .pbar, .phello, .ptabs, .install, .archived-note { display: none !important; }
+  .pmain { margin: 0 !important; padding: 0 !important; }
+  .page-soft { background: #fff !important; }
+  .greceipt { border-width: 1px; }
+}
+
+/* Graduation clearance list */
+.clear-list .row { align-items: center; }

@@ -1336,3 +1336,49 @@ export async function removeFeeItem(code: string) {
   await supabase.from("fee_items").delete().eq("code", code);
   refresh();
 }
+
+/* =================== Graduation fee (management) =================== */
+
+/** Bulk table: "sid" for every row, "paid_<id>" ticked = paid, "date_<id>" = date paid (defaults to today). */
+export async function saveGraduationPayments(_: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const { data: st } = await supabase.from("app_settings").select("graduation_fee").maybeSingle();
+    const fee = Number(st?.graduation_fee ?? 800);
+    const ids = fd.getAll("sid").map(String);
+    const { data: current } = await supabase.from("students").select("id,graduation_paid_on").in("id", ids);
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lusaka" });
+    let changed = 0;
+    for (const id of ids) {
+      const was = (current ?? []).find((c) => c.id === id)?.graduation_paid_on ?? null;
+      const ticked = fd.get(`paid_${id}`) === "on";
+      const date = str(fd, `date_${id}`) || today;
+      if (ticked && (!was || was !== date)) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Check the dates (use the date picker)." };
+        await supabase.from("students").update({ graduation_paid_on: date, graduation_amount: was ? undefined : fee }).eq("id", id);
+        changed++;
+      } else if (!ticked && was) {
+        await supabase.from("students").update({ graduation_paid_on: null, graduation_amount: null }).eq("id", id);
+        changed++;
+      }
+    }
+    refresh();
+    return { ok: changed ? `Saved ${changed} change(s). Paid students can print their receipt from the portal.` : "No changes." };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function setGraduationFee(_: FormState, fd: FormData): Promise<FormState> {
+  try {
+    const { supabase } = await requireManagement();
+    const fee = money(str(fd, "fee"));
+    if (Number.isNaN(fee) || fee < 0) return { error: "Enter the fee, e.g. 800." };
+    const { error } = await supabase.from("app_settings").update({ graduation_fee: fee }).eq("id", true);
+    if (error) return { error: error.message };
+    refresh();
+    return { ok: `Graduation fee set to K${fee}. Already-paid receipts keep the amount they were paid.` };
+  } catch (e) {
+    return fail(e);
+  }
+}

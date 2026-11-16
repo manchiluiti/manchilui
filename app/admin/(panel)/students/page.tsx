@@ -34,6 +34,7 @@ export default async function Students({ searchParams }: { searchParams: Promise
           <Link href="/admin/students/intakes" className="btn btn-navy btn-sm">Intakes &amp; archive</Link>
           <Link href="/admin/students/fees" className="btn btn-navy btn-sm">Edit fees (current students)</Link>
           <Link href="/admin/students/other-fees" className="btn btn-navy btn-sm">Other fees</Link>
+          <Link href="/admin/students/graduation" className="btn btn-navy btn-sm">Graduation</Link>
           <Link href="/admin/students/import" className="btn btn-navy btn-sm">Import from spreadsheet</Link>
           <Link href="/admin/students/new" className="btn btn-orange btn-sm">+ Add student</Link>
         </div>

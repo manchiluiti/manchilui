@@ -17,22 +17,20 @@ export default async function PortalTuitionReceipt({ params }: { params: Promise
     ]);
     const amount = Number(acc?.paid_before ?? 0);
     if (amount <= 0) notFound();
-    return <SchoolReceipt title="GENERAL RECEIPT" date={s?.created_at ?? new Date().toISOString()} name={student.full_name} studentNo={student.student_no} amount={amount} respectOf="Tuition fees" note="payments to this date" />;
+    return <SchoolReceipt title="GENERAL RECEIPT" date={s?.created_at ?? new Date().toISOString()} name={student.full_name} studentNo={student.student_no} amount={amount} respectOf="Tuition" />;
   }
 
   // Row level security only returns the student's own payments.
-  const { data: p } = await supabase.from("payments").select("receipt_no,amount,method,reference,paid_on,student_id").eq("id", id).maybeSingle();
+  const { data: p } = await supabase.from("payments").select("amount,paid_on,student_id").eq("id", id).maybeSingle();
   if (!p || p.student_id !== student.id) notFound();
   return (
     <SchoolReceipt
       title="GENERAL RECEIPT"
-      number={p.receipt_no ? String(p.receipt_no).padStart(4, "0") : undefined}
       date={p.paid_on}
       name={student.full_name}
       studentNo={student.student_no}
       amount={Number(p.amount)}
-      respectOf="Tuition fees"
-      note={`${p.method}${p.reference ? `, ref ${p.reference}` : ""}`}
+      respectOf="Tuition"
     />
   );
 }

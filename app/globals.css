@@ -620,3 +620,6 @@ a.fcard:hover .more { transform: translateX(8px); }
 .tsearch { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
 .tsearch input { flex: 1 1 280px; max-width: 460px; }
 .tsearch small { color: var(--muted); }
+.gr-title { position: relative; }
+.gr-no { position: absolute; right: 0; top: 50%; transform: translateY(-50%); font-family: "Courier New", monospace; font-size: 1.25rem; color: #3b2a8a; letter-spacing: .04em; }
+@media (max-width: 560px) { .gr-no { position: static; display: block; transform: none; margin-top: 6px; } }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { feeSummary, kwacha, requirePortalStudent } from "@/lib/portal";
 import { studentFees } from "@/lib/otherFees";
 
@@ -40,9 +41,15 @@ export default async function PortalFees() {
           {f.pays.map((p) => (
             <div className="row" key={p.id}>
               <div><b>{kwacha(p.amount)}</b><small>{p.paid_on} · {p.method}{p.reference ? ` · Ref ${p.reference}` : ""}</small></div>
+              <Link className="btn btn-sm btn-outline" href={`/portal/fees/receipt/${p.id}`}>Receipt</Link>
             </div>
           ))}
-          {f.before > 0 && <div className="row"><div><b>{kwacha(f.before)}</b></div></div>}
+          {f.before > 0 && (
+            <div className="row">
+              <div><b>{kwacha(f.before)}</b><small>Earlier tuition payments</small></div>
+              <Link className="btn btn-sm btn-outline" href="/portal/fees/receipt/earlier">Receipt</Link>
+            </div>
+          )}
           {f.pays.length === 0 && !f.before && <p className="muted-row">No payments recorded yet.</p>}
           <p className="hint" style={{ padding: "8px 0 12px" }}>Receipts are issued at the office. If a payment is missing, bring your receipt to the office.</p>
         </div>

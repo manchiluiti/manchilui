@@ -45,7 +45,7 @@ export const when = (iso: string) =>
 export async function feeSummary(sb: Awaited<ReturnType<typeof getPortal>>["supabase"], studentId: string) {
   const [{ data: acc }, { data: pays }] = await Promise.all([
     sb.from("student_accounts").select("fees_balance,paid_before,remark").eq("student_id", studentId).maybeSingle(),
-    sb.from("payments").select("id,amount,method,reference,paid_on").eq("student_id", studentId).order("paid_on", { ascending: false }),
+    sb.from("payments").select("id,receipt_no,amount,method,reference,paid_on").eq("student_id", studentId).order("paid_on", { ascending: false }),
   ]);
   const bal = Number(acc?.fees_balance ?? 0);
   const before = Number(acc?.paid_before ?? 0);

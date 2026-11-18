@@ -28,7 +28,7 @@ export default async function Dashboard() {
       {stErr && <div className="err" style={{ marginBottom: 16 }}>Couldn&apos;t load students: {stErr.message}{stErr.message.includes("archived_at") ? " — run the 0013_archive_intakes.sql update in Supabase." : ""}</div>}
       <div className="tiles">
         <div className="tile"><div className="k">Current students</div><div className="v">{all.length}</div><div className="s">{active} registered</div></div>
-        <div className="tile"><div className="k">Fees outstanding</div><div className="v">{kwacha(owed)}</div><div className="s">{owing} student{owing === 1 ? "" : "s"} owing</div>{oldOwed.length > 0 && <Link className="s copy" href="/admin/students?view=owing">+ {kwacha(oldOwed.reduce((t, s) => t + s.bal, 0))} from archived intakes</Link>}</div>
+        <Link href="/admin/students/outstanding" className="tile tile-link"><div className="k">Fees outstanding</div><div className="v">{kwacha(owed)}</div><div className="s">{owing} student{owing === 1 ? "" : "s"} owing</div>{oldOwed.length > 0 && <div className="s">+ {kwacha(oldOwed.reduce((t, s) => t + s.bal, 0))} from archived intakes</div>}<span className="more">See by intake →</span></Link>
         <div className="tile"><div className="k">New enquiries</div><div className="v">{newEnq ?? 0}</div><div className="s">waiting for a call back</div></div>
       </div>
 

@@ -318,6 +318,9 @@ a.fcard:hover .more { transform: translateX(8px); }
 .tile .k { font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-2); }
 .tile .v { font-size: 2rem; font-weight: 800; color: var(--navy); font-variant-numeric: tabular-nums; margin-top: 4px; }
 .tile .s { color: var(--muted); font-size: .9rem; }
+a.tile { display: block; color: inherit; transition: border-color .15s, box-shadow .15s; }
+a.tile:hover { border-color: var(--orange); box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+.tile .more { display: block; margin-top: 8px; font-size: .82rem; font-weight: 600; color: var(--orange); }
 @media (max-width: 760px) { .tiles { grid-template-columns: 1fr; } }
 
 .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid #F3F4F6; }

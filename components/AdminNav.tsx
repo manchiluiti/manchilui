@@ -8,6 +8,7 @@ const TABS: Tab[] = [
   { href: "/admin", label: "Dashboard", mgmt: true },
   { href: "/admin/teaching", label: "Teaching", teach: true },
   { href: "/admin/students", label: "Students", mgmt: true },
+  { href: "/admin/payments", label: "Payments", mgmt: true },
   { href: "/admin/modules", label: "Modules", mgmt: true },
   { href: "/admin/staff", label: "Staff", mgmt: true },
   { href: "/admin/payroll", label: "Payroll", mgmt: true },

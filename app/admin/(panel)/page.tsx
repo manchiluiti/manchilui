@@ -46,7 +46,7 @@ export default async function Dashboard() {
           </div>
         </section>
         <section className="rec">
-          <div className="rec-h"><h2>Latest payments</h2></div>
+          <div className="rec-h"><h2>Latest payments</h2><Link className="copy" href="/admin/payments">See all</Link></div>
           <div className="rec-b">
             {(pays ?? []).length === 0 && <p className="muted-row">No payments recorded yet. Record one from a student&apos;s page.</p>}
             {(pays ?? []).map((p, i) => {

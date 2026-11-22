@@ -8,7 +8,7 @@ const long = (s: string | null) => (s ? new Date(s.length === 10 ? `${s}T00:00:0
 type Props = { name: string; town?: string | null; phone?: string | null; letterDate: string; startDate: string | null; tuition: number; graduationFee: number; note?: string | null };
 
 /** The acceptance letter every applicant accepted through the system receives (2 pages: letter + school rules). */
-export default function AcceptanceLetter({ name, town, phone, letterDate, startDate, tuition, graduationFee, note }: Props) {
+export default function AcceptanceLetter({ name, town, letterDate, startDate, tuition, graduationFee, note }: Props) {
   const total = tuition + ACCEPTANCE_FEES.reduce((t, f) => t + f.amount, 0);
   return (
     <div className="acc-wrap">
@@ -23,7 +23,7 @@ export default function AcceptanceLetter({ name, town, phone, letterDate, startD
         </header>
 
         <p className="acc-date">{long(letterDate)}</p>
-        <p className="acc-to"><b>{name}</b>{town ? <><br />{town}</> : null}{phone ? <><br />{phone}</> : null}</p>
+        <p className="acc-to"><b>{name}</b>{town ? <><br />{town}</> : null}<br />Phone: +260 ____________________</p>
 
         <h1 className="acc-title">ACCEPTANCE LETTER</h1>
         <p>Dear {name},</p>
@@ -46,7 +46,7 @@ export default function AcceptanceLetter({ name, town, phone, letterDate, startD
         {note && <p>{note}</p>}
         <p>We wish you a happy and successful stay with us.</p>
         <p>Yours faithfully,</p>
-        <div className="acc-sign"><span /><b>{DIRECTOR.name.toUpperCase()}</b><br />{DIRECTOR.title.toUpperCase()}</div>
+        <div className="acc-sign"><span /><b>{DIRECTOR.title.toUpperCase()}</b></div>
       </article>
 
       <article className="acc-page acc-break">

@@ -644,7 +644,10 @@ a.tile:hover { border-color: var(--orange); box-shadow: 0 4px 12px rgba(0,0,0,.0
 .acc-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
 .acc-table .acc-total td { border-top: 1.5px solid #111; border-bottom: 1.5px solid #111; font-weight: 800; }
 .acc-sign { margin-top: 36px; line-height: 1.4; }
-.acc-sign span { display: block; width: 220px; border-bottom: 1px solid #111; height: 36px; margin-bottom: 6px; }
+.acc-sign > span { display: block; width: 220px; border-bottom: 1px solid #111; height: 0; margin-bottom: 6px; }
+.acc-sigimg { height: 64px; display: flex; align-items: flex-end; margin-bottom: -4px; }
+.acc-sigimg .sig-img { height: 64px; margin: 0; }
+.acc-sigimg .sig-blank { border: 0; height: 40px; }
 .acc-rules { padding-left: 22px; margin: 0 0 12px; }
 .acc-rules li { margin-bottom: 6px; }
 .acc-rules ol { padding-left: 22px; margin-top: 4px; }

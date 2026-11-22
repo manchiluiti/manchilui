@@ -21,5 +21,5 @@ export const ACCEPTANCE_ITEMS = [
   "8 hard cover books",
 ];
 
-export const DIRECTOR = { name: "Eliness Jere", title: "Director" };
+export const DIRECTOR = { name: "Innocent Phiri", title: "Director" };
 export const POSTAL = "P.O. Box 510627, Chipata";

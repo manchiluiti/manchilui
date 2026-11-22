@@ -1,4 +1,5 @@
 import PrintButton from "@/components/PrintButton";
+import SignatureImg from "@/components/SignatureImg";
 import { ACCEPTANCE_FEES, ACCEPTANCE_ITEMS, DIRECTOR, DURATION, FIRST_PAYMENT, POSTAL } from "@/lib/acceptance";
 import { SITE } from "@/lib/site";
 
@@ -46,7 +47,7 @@ export default function AcceptanceLetter({ name, town, letterDate, startDate, tu
         {note && <p>{note}</p>}
         <p>We wish you a happy and successful stay with us.</p>
         <p>Yours faithfully,</p>
-        <div className="acc-sign"><span /><b>{DIRECTOR.title.toUpperCase()}</b></div>
+        <div className="acc-sign"><div className="acc-sigimg"><SignatureImg /></div><span /><b>{DIRECTOR.name.toUpperCase()}</b><br />{DIRECTOR.title.toUpperCase()}</div>
       </article>
 
       <article className="acc-page acc-break">

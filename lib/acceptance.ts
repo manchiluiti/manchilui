@@ -4,6 +4,8 @@
  * Change amounts here when the institute's prices change.
  */
 export const ACCEPTANCE_TUITION = 6500;
+export const FIRST_PAYMENT = 2000; // minimum paid on arrival
+export const DURATION = "one-year";
 
 export const ACCEPTANCE_FEES = [
   { name: "Computer lessons", amount: 1000 },

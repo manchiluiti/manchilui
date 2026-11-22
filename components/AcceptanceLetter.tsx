@@ -1,5 +1,5 @@
 import PrintButton from "@/components/PrintButton";
-import { ACCEPTANCE_FEES, ACCEPTANCE_ITEMS, DIRECTOR, POSTAL } from "@/lib/acceptance";
+import { ACCEPTANCE_FEES, ACCEPTANCE_ITEMS, DIRECTOR, DURATION, FIRST_PAYMENT, POSTAL } from "@/lib/acceptance";
 import { SITE } from "@/lib/site";
 
 const k = (n: number) => `K ${n.toLocaleString("en-ZM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -28,7 +28,7 @@ export default function AcceptanceLetter({ name, town, phone, letterDate, startD
         <h1 className="acc-title">ACCEPTANCE LETTER</h1>
         <p>Dear {name},</p>
         <p>
-          {SITE.name} is pleased to inform you that you have been accepted as a student on the <b>{SITE.programme}</b> programme.
+          {SITE.name} is pleased to inform you that you have been accepted as a student on the {DURATION} <b>{SITE.programme}</b> programme.
           {startDate ? <> The school opens on <b>{long(startDate)}</b>. Please report on that day with the following requirements.</> : <> Please report on the opening day with the following requirements.</>}
         </p>
 
@@ -69,7 +69,7 @@ export default function AcceptanceLetter({ name, town, phone, letterDate, startD
           <li>
             <b>Payment</b>
             <ol type="a">
-              <li>On arrival, students must make a first payment towards school fees and bring the other requirements listed in the acceptance letter.</li>
+              <li>On arrival, students must pay at least <b>{k(FIRST_PAYMENT)}</b> towards school fees and bring the other requirements listed in the acceptance letter.</li>
               <li>The remaining balance is paid in instalments, as communicated by the college accounts office.</li>
               <li>No student will be allowed to report without making a payment.</li>
               <li>Students with outstanding balances will be sent home to collect the money before being allowed back into class.</li>

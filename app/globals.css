@@ -666,3 +666,25 @@ a.tile:hover { border-color: var(--orange); box-shadow: 0 4px 12px rgba(0,0,0,.0
   .acc-decl { margin-top: 18px; }
   .acc-break { break-before: page; page-break-before: always; }
 }
+
+/* Printable fees report */
+.rep { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 24px; color: #111; }
+.rep-head { display: flex; gap: 14px; align-items: center; border-bottom: 2px solid #0B1F4D; padding-bottom: 10px; margin-bottom: 14px; }
+.rep-head img { width: 56px; height: 56px; }
+.rep-head h1 { font-size: 1.2rem; color: #0B1F4D; margin: 0; }
+.rep-head p { margin: 2px 0 0; font-size: .9rem; }
+.rep-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.rep-table th, .rep-table td { border: 1px solid #D1D5DB; padding: 4px 6px; }
+.rep-table th { background: #0B1F4D; color: #fff; font-weight: 700; text-align: left; }
+.rep-table th.grp { text-align: center; }
+.rep-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rep-table tr.owe .bal { color: #B45309; }
+.rep-table tbody tr:nth-child(even) td { background: #F9FAFB; }
+.rep-table tfoot td { font-weight: 800; background: #EEF1F7; }
+.rep-note { font-size: .8rem; color: #555; margin-top: 8px; }
+@media print {
+  .rep { border: 0; padding: 0; }
+  .rep-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rep-table thead { display: table-header-group; }
+  .rep-table tr { break-inside: avoid; }
+}
